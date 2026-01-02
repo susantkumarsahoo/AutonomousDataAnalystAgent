@@ -5,6 +5,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
+from ml_project.frontend_api.streamlit_analysis_app import analysis_dashboard
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url,check_api_status
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
