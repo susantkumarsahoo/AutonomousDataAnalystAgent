@@ -4,7 +4,7 @@ from pathlib import Path
 # -------------------------
 # Define project name (main package)
 # -------------------------
-project_name = "ml_project" 
+project_name = "ml_project"
 
 # -------------------------
 # Define additional folders
