@@ -10,6 +10,10 @@ from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_re
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 
+API_URL = "http://localhost:8000"
+FASTAPI_URL = "http://localhost:8000"
+FLASK_URL = "http://localhost:5000"
+
 # Fix Unicode encoding for Windows console
 if sys.platform == "win32":
     try:
@@ -93,7 +97,9 @@ try:
                 st.error(f"❌ Error uploading file: {str(e)}")
                 logger.error("File upload error | error=%s", str(e))
  
-           
+
+
+
         st.divider()
     
         st.header("🔌 API Status")
@@ -123,41 +129,47 @@ try:
             logger.info("API status refresh triggered")
             st.rerun()
 
-        # API status tabs - FIXED: Removed duplicate st.tabs() call
-        tab1, tab2 = st.tabs(["FastAPI", "Flask"])
-
-        with tab1:
-            st.warning("🚧 This Project is under development.")
-
-            # FastAPI healthcheck
+        # API Service Status
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.subheader("Fst1 Terminal API")
             try:
                 response = fastapi_api_request_url("/healthcheck", timeout=30)
                 if response and response.json().get("status") == "healthy":
-                    st.markdown("✅ **FastAPI**")
+                    st.badge("✅ Healthy", color="green")
                     logger.info("FastAPI healthcheck successful")
                 else:
-                    st.markdown("❌ **FastAPI**")
+                    st.badge("❌ Unhealthy", color="red")
                     logger.error("FastAPI healthcheck failed")
             except Exception as e:
-                st.markdown("❌ **FastAPI**")
+                st.badge("❌ Error", color="red")
                 logger.error("FastAPI healthcheck error | error=%s", str(e))
         
-        with tab2:
-            # Flask healthcheck
+        with col2:
+            st.subheader("Flk2 Terminal API")
             try:
                 response = flask_api_request_url("/healthcheck", timeout=30)
                 if response and response.json().get("status") == "healthy":
-                    st.markdown("✅ **Flask API**")
+                    st.badge("✅ Healthy", color="green")
                     logger.info("Flask API healthcheck successful")
                 else:
-                    st.markdown("❌ **Flask API**")
+                    st.badge("❌ Unhealthy", color="red")
                     logger.error("Flask API healthcheck failed")
             except Exception as e:
-                st.markdown("❌ **Flask API**")
+                st.badge("❌ Error", color="red")
                 logger.error("Flask API healthcheck error | error=%s", str(e))
 
-            logger.info("Tab 2: Completed successfully")
-    
+        with col3:
+            st.subheader("Stm3 Terminal API")
+            try:
+                st.badge("✅ Healthy", color="green")
+                logger.info("Streamlit healthcheck successful")
+            except Exception as e:
+                st.badge("❌ Error", color="red")
+                logger.error("Streamlit healthcheck error | error=%s", str(e))
+
+
         st.divider()
     
         with st.expander("ℹ️ Dashboard Info"):

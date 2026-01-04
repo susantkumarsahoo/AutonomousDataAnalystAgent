@@ -10,8 +10,19 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
+from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
+
+from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
+from ml_project.frontend_api.streamlit_analysis_helper import stream_data,stream_pivot_data
+
+config = read_yaml("ml_project/config/ml_project_config.yaml")
+dataset_path = config["data"]["raw_path"]
+
+API_URL = "http://localhost:8000"
+FASTAPI_URL = "http://localhost:8000"
+FLASK_URL = "http://localhost:5000"
 
 # Fix Unicode encoding for Windows console
 if sys.platform == "win32":
@@ -87,24 +98,135 @@ def analysis_dashboard(
             # ----------------------------------------------
             # TAB 1: COMPLAINT OVERVIEW
             # ----------------------------------------------
+
             with tab1:
                 st.warning("🚧 This Project is under development.")
+                
+                # Add descriptive header
+                st.markdown("""
+                ### Open Complaints Overview
+                This dashboard provides a real-time view of open complaints categorized by type and status. 
+                The pivot table below summarizes active complaint cases across different categories.
+                """)
 
+
+                st.divider()
+                
+                response = fastapi_api_request_url("/open_complaint_pivot")
+                responce_01 = fastapi_api_request_url("/open_close_complaint_pivot")
+
+                if response is not None:
+                    try:
+                        response_data = response.json()
+                        
+                        if response_data:  # Check if data exists
+                            df = pd.DataFrame(response_data)
+                                                        
+                            # **IMPROVEMENT: Style the Grand_Total row**
+                            st.subheader("📊 Complaints Pivot Table")
+                            st.caption("Grand Total row is highlighted in red for easy identification")
+                            
+                            styled_df = df.style.apply(
+                                lambda x: ['background-color: #ff0000; font-weight: bold' if x.name == len(df)-1 else '' for _ in x],
+                                axis=1
+                            ) if 'Grand_Total' in df['COMPLAINT TYPE'].values else df
+                            
+                            st.dataframe(
+                                styled_df,
+                                use_container_width=True,
+                                height=400
+                            )
+                                                       
+                            logger.info("Tab 1: Complaint overview displayed successfully")
+                        else:
+                            st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
+                            logger.warning("Tab 1: Empty response data")
+                            
+                    except Exception as e:
+                        st.error(f"❌ Failed to parse response: {e}")
+                        st.info("Please contact support if this issue persists.")
+                        logger.error(f"Tab 1: Error parsing response - {e}")
+                else:
+                    st.error("❌ No response from API")
+                    st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
+                    logger.error("Tab 1: API returned None")
+                
+                # Add footer with last update time
+                st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+                st.divider()
+
+                # Open Close Complaints Pivot Table
+                st.subheader("📊 Open/Close Complaints Pivot Table")
+                st.caption("View complaints categorized by type, department, and status (Open/Closed)")
+
+                if responce_01 is not None:
+                    try:
+                        response_data = responce_01.json()
+                        
+                        if response_data:  # Check if data exists
+                            df = pd.DataFrame(response_data)
+                            
+                            # **FIX: Flatten multi-level columns if they exist**
+                            if isinstance(df.columns, pd.MultiIndex):
+                                df.columns = ['_'.join(map(str, col)).strip('_') if isinstance(col, tuple) else col for col in df.columns]
+                            
+                            # Check if Grand_Total row exists
+                            has_grand_total = 'Grand_Total' in df['COMPLAINT TYPE'].values if 'COMPLAINT TYPE' in df.columns else False
+                            
+                            # **IMPROVEMENT: Style the Grand_Total row**
+                            if has_grand_total:
+                                styled_df = df.style.apply(
+                                    lambda x: ['background-color: #ffebee; font-weight: bold; color: #c62828' if x.name == len(df)-1 else '' for _ in x],
+                                    axis=1
+                                )
+                            else:
+                                styled_df = df
+                            
+                            st.dataframe(
+                                styled_df,
+                                use_container_width=True,
+                                height=400
+                            ) 
+                            
+                            # Show summary metrics
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Total Complaint Types", len(df) - (1 if has_grand_total else 0))
+                            with col2:
+                                st.metric("Total Columns", len(df.columns))
+                                                    
+                            logger.info("Tab 1: Open Close Complaints Pivot Table displayed successfully")
+                        else:    
+                            st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
+                            logger.warning("Tab 1: Empty response data")
+                            
+                    except Exception as e:
+                        st.error(f"❌ Failed to parse response: {e}")
+                        st.info("Please contact support if this issue persists.")
+                        logger.error(f"Tab 1: Error parsing response - {e}")
+                        import traceback
+                        st.code(traceback.format_exc())  # Show detailed error for debugging
+
+                st.divider()
+
+                # Usage in your Streamlit app:
+                if st.button("🔄 Stream Pivot Data", type="primary"):
+                    logger.info("Stream Pivot Data button clicked")
+                    # Stream the pivot data
+                    st.write_stream(stream_pivot_data(dataset_path))  # Pass your dataset path here
+
+                    # Show the actual pivot table after streaming
+                    pivot_df = open_complaint_pivot(dataset_path)
+                    st.dataframe(pivot_df, use_container_width=True)
+                    st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    logger.info("Stream Pivot Data displayed successfully")
             # ----------------------------------------------
             # TAB 2: DATA TABLE
             # ----------------------------------------------
             with tab2:
                 st.warning("🚧 This Project is under development.")
                 
-                # Preview of data
-                if df is not None:
-                    if st.button("📊 Show Data Preview", key="show_data_btn"):
-                        st.subheader("Data Preview")
-                        st.dataframe(df.head(10), use_container_width=True)
-                        st.info(f"Showing first 10 rows of {len(df)} total rows")
-                        logger.info("Tab 2: Data table displayed")
-                else:
-                    st.info("No data available to display")
 
             # ----------------------------------------------
             # TAB 3: SUMMARY
