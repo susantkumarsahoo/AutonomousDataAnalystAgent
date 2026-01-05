@@ -154,11 +154,15 @@ def analysis_dashboard(
                 # Add footer with last update time
                 st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+
+                
                 st.divider()
 
                 # Open Close Complaints Pivot Table
                 st.subheader("📊 Open/Close Complaints Pivot Table")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
+
+                responce_01 = fastapi_api_request_url("/open_close_complaint_pivot")  # Make sure using FastAPI
 
                 if responce_01 is not None:
                     try:
@@ -185,7 +189,7 @@ def analysis_dashboard(
                             
                             st.dataframe(
                                 styled_df,
-                                use_container_width=True,
+                                width='stretch',  # FIXED: Changed from use_container_width=True
                                 height=400
                             ) 
                             
@@ -195,7 +199,7 @@ def analysis_dashboard(
                                 st.metric("Total Complaint Types", len(df) - (1 if has_grand_total else 0))
                             with col2:
                                 st.metric("Total Columns", len(df.columns))
-                                                    
+                                                
                             logger.info("Tab 1: Open Close Complaints Pivot Table displayed successfully")
                         else:    
                             st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
@@ -207,6 +211,15 @@ def analysis_dashboard(
                         logger.error(f"Tab 1: Error parsing response - {e}")
                         import traceback
                         st.code(traceback.format_exc())  # Show detailed error for debugging
+                else:
+                    st.error("❌ No response from API")
+                    st.info("The API endpoint may not be registered. Check FastAPI router.")
+                    logger.error("Tab 1: API returned None for open_close_complaint_pivot")
+
+                st.divider()
+
+
+
 
                 st.divider()
 
