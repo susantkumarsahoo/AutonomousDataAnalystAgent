@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 from ml_project.utils.helper import read_yaml
-from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot,open_close_complaint_pivot
+from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot,open_close_complaint_pivot,agging_open_pivot_dict,agging_open_close_pivot_dict
 
 
 
@@ -120,52 +120,84 @@ def get_open_complaint_pivot():
         raise
     except Exception as e:
         logger.error(str(CustomException(e, sys)))
-        raise HTTPException(status_code=500, detail="Internal server error")
-
+        raise HTTPException(status_code=500, detail=" open_complaint_pivot url Internal server error")
 
 
 @app.get("/open_close_complaint_pivot")
 def get_open_close_complaint_pivot():
     try:
         logger.info("Open/Close complaint pivot endpoint hit")
-        
+
         if not os.path.exists(dataset_path):
             logger.warning("Dataset not found | path=%s", dataset_path)
             raise HTTPException(status_code=404, detail="Dataset not found")
-        
-        # Get pivot table
-        pivot_open_close_df = open_close_complaint_pivot(dataset_path)
-        
-        # **FIX: Handle MultiIndex columns properly**
-        # Flatten column names if they're multi-level
-        if isinstance(pivot_open_close_df.columns, pd.MultiIndex):
-            pivot_open_close_df.columns = [
-                '_'.join(map(str, col)).strip('_') if isinstance(col, tuple) else str(col) 
-                for col in pivot_open_close_df.columns
-            ]
-        
-        # Convert all columns to appropriate types
-        for col in pivot_open_close_df.columns:
-            if pivot_open_close_df[col].dtype in ['int64', 'int32', 'float64', 'float32']:
-                pivot_open_close_df[col] = pivot_open_close_df[col].astype(int)
-        
-        # **Convert to dict with proper JSON serialization**
-        response_dict = json.loads(
-            pivot_open_close_df.to_json(orient="records", date_format='iso')
+
+        # Function already returns dict, use it directly
+        response_dict = open_close_complaint_pivot(dataset_path)
+
+        logger.info(
+            "Open/Close Pivot table generated successfully | records=%d",
+            len(response_dict)
         )
-        
-        logger.info("Open/Close Pivot table generated successfully | records=%d", len(response_dict))
+
         return JSONResponse(content=response_dict)
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Error in open_close_complaint_pivot: %s", str(e))
         logger.error(str(CustomException(e, sys)))
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@app.get("/agging_open_pivot_dict")
+def get_agging_open_pivot_dict():
+    try:
+        logger.info("Agging open pivot endpoint hit")
 
+        if not os.path.exists(dataset_path):
+            logger.warning("Dataset not found | path=%s", dataset_path)
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Function already returns dict, use it directly
+        response_dict = agging_open_pivot_dict(dataset_path)
+
+        logger.info(
+            "Agging open Pivot table generated successfully | records=%d",
+            len(response_dict)
+        )
+
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(str(CustomException(e, sys)))
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+@app.get("/agging_open_close_pivot_dict")
+def get_agging_open_close_pivot_dict():
+    try:
+        logger.info("Agging open/close pivot endpoint hit")
+
+        if not os.path.exists(dataset_path):
+            logger.warning("Dataset not found | path=%s", dataset_path)
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Function already returns dict, use it directly
+        response_dict = agging_open_close_pivot_dict(dataset_path)
+
+        logger.info(
+            "Agging open/close Pivot table generated successfully | records=%d",
+            len(response_dict)
+        )
+
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(str(CustomException(e, sys)))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # -----------------------------------------------------------------------------

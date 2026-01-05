@@ -40,8 +40,28 @@ try:
     # SIDEBAR
     # -----------------------------------------------------------------------------
     with st.sidebar:
-        st.header("🧭 Navigation")
-
+        st.markdown("""
+        <div style='
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        text-align: center;
+        margin-bottom: 20px;
+        '>
+        <h2 style='
+            color: white;
+            font-weight: bold;
+            margin: 0;
+            font-size: 28px;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        '>
+            🧭 CRM Navigation Panel TPSM
+        </h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
         dashboard_type = st.radio(
             "Select Dashboard",
             [
@@ -97,8 +117,6 @@ try:
                 st.error(f"❌ Error uploading file: {str(e)}")
                 logger.error("File upload error | error=%s", str(e))
  
-
-
 
         st.divider()
     
