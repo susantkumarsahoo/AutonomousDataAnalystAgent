@@ -34,6 +34,99 @@ if sys.platform == "win32":
 logger = get_logger(__name__)
 
 
+# =====================================================
+# CACHED API FUNCTIONS
+# =====================================================
+
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+def fetch_open_complaint_pivot():
+    """Fetch open complaint pivot data from API - cached"""
+    try:
+        response = fastapi_api_request_url("/open_complaint_pivot")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error", status
+    except Exception as e:
+        logger.error(f"Error fetching open complaint pivot: {e}")
+        return None, str(e), None
+
+
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+def fetch_open_close_complaint_pivot():
+    """Fetch open/close complaint pivot data from API - cached"""
+    try:
+        response = fastapi_api_request_url("/open_close_complaint_pivot")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error", status
+    except Exception as e:
+        logger.error(f"Error fetching open/close complaint pivot: {e}")
+        return None, str(e), None
+
+
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+def fetch_agging_open_pivot():
+    """Fetch agging open pivot data from API - cached"""
+    try:
+        response = fastapi_api_request_url("/agging_open_pivot_dict")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error", status
+    except Exception as e:
+        logger.error(f"Error fetching agging open pivot: {e}")
+        return None, str(e), None
+
+
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+def fetch_agging_open_close_pivot():
+    """Fetch agging open/close pivot data from API - cached"""
+    try:
+        response = fastapi_api_request_url("/agging_open_close_pivot_dict")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error", status
+    except Exception as e:
+        logger.error(f"Error fetching agging open/close pivot: {e}")
+        return None, str(e), None
+
+
+def style_grand_total_dataframe(df_pivot):
+    """Apply styling to highlight Grand_Total row"""
+    if 'Grand_Total' in df_pivot['COMPLAINT TYPE'].values:
+        def highlight_grand_total(row):
+            if row['COMPLAINT TYPE'] == 'Grand_Total':
+                return ['background-color: #ff0000; color: white; font-weight: bold'] * len(row)
+            else:
+                return [''] * len(row)
+        return df_pivot.style.apply(highlight_grand_total, axis=1)
+    else:
+        return df_pivot
+
+
 def analysis_dashboard(
     dashboard_type: str,
     dataset_path: str,
@@ -111,215 +204,111 @@ def analysis_dashboard(
                 The pivot table below summarizes active complaint cases across different categories.
                 """)
                 
-                # Add a divider
+                # Add refresh button
+                col1, col2 = st.columns([6, 1])
+                with col2:
+                    if st.button("🔄 Refresh All", key="refresh_all_btn"):
+                        st.cache_data.clear()
+                        st.rerun()
+                
                 st.divider()
 
+                # ========================================
+                # SECTION 1: OPEN COMPLAINT PIVOT
+                # ========================================
                 with st.spinner("Loading data..."):
-                    response = fastapi_api_request_url("/open_complaint_pivot")
+                    df_pivot, error, status_code = fetch_open_complaint_pivot()
 
-                if response is not None and response.status_code == 200:
-                    try:
-                        response_data = response.json()
-                        
-                        if response_data:  # Check if data exists
-                            df_pivot = pd.DataFrame(response_data)
-                                                        
-                            # **IMPROVEMENT: Style the Grand_Total row**
-                            st.subheader("📊 Open Complaints Pivot Table")
-                            st.caption("Grand Total row is highlighted in red for easy identification")
-                            
-                            styled_df = df_pivot.style.apply(
-                                lambda x: ['background-color: #ff0000; font-weight: bold' if x.name == len(df_pivot)-1 else '' for _ in x],
-                                axis=1
-                            ) if 'Grand_Total' in df_pivot['COMPLAINT TYPE'].values else df_pivot
-                            
-                            st.dataframe(
-                                styled_df,
-                                use_container_width=True,
-                                height=400
-                            )
-                                                    
-                            logger.info("Tab 1: Complaint overview displayed successfully")
-                        else:
-                            st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
-                            logger.warning("Tab 1: Empty response data")
-                            
-                    except Exception as e:
-                        st.error(f"❌ Failed to parse response: {e}")
-                        st.info("Please contact support if this issue persists.")
-                        logger.error(f"Tab 1: Error parsing response - {e}")
+                if error is None and df_pivot is not None:
+                    st.subheader("📊 Open Complaints Pivot Table")
+                    st.caption("Grand Total row is highlighted in red for easy identification")
+                    
+                    styled_df = style_grand_total_dataframe(df_pivot)
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                    logger.info("Tab 1: Complaint overview displayed successfully")
                 else:
-                    if response is not None:
-                        st.error(f"❌ Failed to fetch data. Status code: {response.status_code}")
+                    if status_code:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code}")
                         st.info("The API service may be experiencing issues. Please try again in a few moments.")
-                        logger.error(f"Tab 1: API request failed with status code {response.status_code}")
+                        logger.error(f"Tab 1: API request failed with status code {status_code}")
                     else:
-                        st.error("❌ No response from API")
+                        st.error(f"❌ Error: {error}")
                         st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
-                        logger.error("Tab 1: API returned None")
+                        logger.error(f"Tab 1: Error - {error}")
 
-                # Add footer with last update time
-                st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
 
-                # Open Close Complaints Pivot Table
+                # ========================================
+                # SECTION 2: OPEN/CLOSE COMPLAINTS PIVOT
+                # ========================================
                 st.subheader("📊 Open/Close Complaints Pivot Table")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
                 with st.spinner("Loading data..."):
-                    response_01 = fastapi_api_request_url("/open_close_complaint_pivot")
+                    df_pivot_02, error_02, status_code_02 = fetch_open_close_complaint_pivot()
 
-                if response_01 is not None and response_01.status_code == 200:
-                    try:
-                        response_data = response_01.json()
-                        
-                        if response_data:  # Check if data exists
-                            df_pivot = pd.DataFrame(response_data)
-                            
-                            # Apply styling if Grand_Total row exists
-                            if 'Grand_Total' in df_pivot['COMPLAINT TYPE'].values:
-                                def highlight_grand_total(row):
-                                    if row['COMPLAINT TYPE'] == 'Grand_Total':
-                                        return ['background-color: #ff0000; color: white; font-weight: bold'] * len(row)
-                                    else:
-                                        return [''] * len(row)
-                                
-                                styled_df = df_pivot.style.apply(highlight_grand_total, axis=1)
-                            else:
-                                styled_df = df_pivot
-                                                        
-                            st.dataframe(
-                                styled_df,
-                                use_container_width=True,
-                                height=400
-                            )
-                        
-                            logger.info("Tab 1: Open Close Complaints Pivot Table displayed successfully")
-                        else:
-                            st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
-                            logger.warning("Tab 1: Empty response data")
-                    except Exception as e:
-                        st.error(f"❌ Error processing data: {str(e)}")
-                        logger.error(f"Tab 1: Error processing response - {str(e)}")
+                if error_02 is None and df_pivot_02 is not None:
+                    styled_df = style_grand_total_dataframe(df_pivot_02)
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                    logger.info("Tab 1: Open Close Complaints Pivot Table displayed successfully")
                 else:
-                    if response_01 is not None:
-                        st.error(f"❌ Failed to fetch data. Status code: {response_01.status_code}")
-                        logger.error(f"Tab 1: API request failed with status code {response_01.status_code}")
+                    if status_code_02:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code_02}")
+                        logger.error(f"Tab 1: API request failed with status code {status_code_02}")
                     else:
-                        st.error("❌ Unable to connect to the server. Please check your connection.")
-                        logger.error("Tab 1: API request returned None")
+                        st.error(f"❌ Error: {error_02}")
+                        logger.error(f"Tab 1: Error - {error_02}")
 
-                # Add footer with last update time
-                st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-                # Add a divider
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
                 
-                # Add a header
+                # ========================================
+                # SECTION 3: AGGING OPEN COMPLAINTS PIVOT
+                # ========================================
                 st.header("📊 Agging Open Complaints Pivot Table")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-
-
-                
-
-                @st.cache_data(ttl=300)  # Cache for 5 minutes
-                def fetch_agging_open_data():
-                    return fastapi_api_request_url("/agging_open_pivot_dict")
-
                 with st.spinner("Loading data..."):
-                    response_02 = fetch_agging_open_data()
+                    df_pivot_03, error_03, status_code_03 = fetch_agging_open_pivot()
 
-                if response_02 is not None and response_02.status_code == 200:
-                    try:
-                        response_data = response_02.json()
-                        if response_data:
-                            df_pivot = pd.DataFrame(response_data)
-                            
-                            # Store in session state
-                            st.session_state['agging_open_df'] = df_pivot
-                            
-                            # Apply styling if Grand_Total row exists
-                            if 'Grand_Total' in df_pivot['COMPLAINT TYPE'].values:
-                                def highlight_grand_total(row):
-                                    if row['COMPLAINT TYPE'] == 'Grand_Total':
-                                        return ['background-color: #ff0000; color: white; font-weight: bold'] * len(row)
-                                    else:
-                                        return [''] * len(row)
-                                
-                                styled_df = df_pivot.style.apply(highlight_grand_total, axis=1)
-                                st.dataframe(styled_df, use_container_width=True, height=400)
-                            else:
-                                st.dataframe(df_pivot, use_container_width=True, height=400)
-                            
-                            logger.info("Tab 1: Agging Open Complaints Pivot Table displayed successfully")
-                        else:
-                            st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
-                            logger.warning("Tab 1: Empty response data")
-                    except Exception as e:
-                        st.error(f"❌ Error processing data: {str(e)}")
-                        logger.error(f"Tab 1: Error processing response - {str(e)}")
+                if error_03 is None and df_pivot_03 is not None:
+                    styled_df = style_grand_total_dataframe(df_pivot_03)
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                    logger.info("Tab 1: Agging Open Complaints Pivot Table displayed successfully")
                 else:
-                    if response_02 is not None:
-                        st.error(f"❌ Failed to fetch data. Status code: {response_02.status_code}")
-                        logger.error(f"Tab 1: API request failed with status code {response_02.status_code}")
+                    if status_code_03:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code_03}")
+                        logger.error(f"Tab 1: API request failed with status code {status_code_03}")
                     else:
-                        st.error("❌ Unable to connect to the server. Please check your connection.")
-                        logger.error("Tab 1: API request returned None")
+                        st.error(f"❌ Error: {error_03}")
+                        logger.error(f"Tab 1: Error - {error_03}")
 
-                # Add footer with last update time
-                st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-                # Add a divider
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
                 
+                # ========================================
+                # SECTION 4: AGGING OPEN/CLOSE COMPLAINTS PIVOT
+                # ========================================
                 st.header("📊 Agging Open/Close Complaints Pivot Table")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
                 with st.spinner("Loading data..."):
-                    response_03 = fastapi_api_request_url("/agging_open_close_pivot_dict")
+                    df_pivot_04, error_04, status_code_04 = fetch_agging_open_close_pivot()
 
-                if response_03 is not None and response_03.status_code == 200:
-                    try:
-                        response_data = response_03.json()
-                        if response_data:
-                            df_pivot = pd.DataFrame(response_data)
-                            
-                            # Store in session state
-                            st.session_state['agging_open_close_df'] = df_pivot
-
-                            # Apply styling if Grand_Total row exists
-                            if 'Grand_Total' in df_pivot['COMPLAINT TYPE'].values:
-                                def highlight_grand_total(row):
-                                    if row['COMPLAINT TYPE'] == 'Grand_Total':
-                                        return ['background-color: #ff0000; color: white; font-weight: bold'] * len(row)
-                                    else:
-                                        return [''] * len(row)
-                                
-                                styled_df = df_pivot.style.apply(highlight_grand_total, axis=1)
-                                st.dataframe(styled_df, use_container_width=True, height=400)
-                            else:
-                                st.dataframe(df_pivot, use_container_width=True, height=400)
-
-                            logger.info("Tab 1: Agging Open/Close Complaints Pivot Table displayed successfully")
-                        else:
-                            st.warning("⚠️ No data available at the moment. Please try refreshing or check back later.")
-                            logger.warning("Tab 1: Empty response data")
-                    except Exception as e:
-                        st.error(f"❌ Error processing data: {str(e)}")
-                        logger.error(f"Tab 1: Error processing response - {str(e)}")
+                if error_04 is None and df_pivot_04 is not None:
+                    styled_df = style_grand_total_dataframe(df_pivot_04)
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                    logger.info("Tab 1: Agging Open/Close Complaints Pivot Table displayed successfully")
                 else:
-                    if response_03 is not None:
-                        st.error(f"❌ Failed to fetch data. Status code: {response_03.status_code}")
-                        logger.error(f"Tab 1: API request failed with status code {response_03.status_code}")
+                    if status_code_04:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code_04}")
+                        logger.error(f"Tab 1: API request failed with status code {status_code_04}")
                     else:
-                        st.error("❌ Unable to connect to the server. Please check your connection.")
-                        logger.error("Tab 1: API request returned None")
+                        st.error(f"❌ Error: {error_04}")
+                        logger.error(f"Tab 1: Error - {error_04}")
 
-                # Add footer with last update time
-                st.caption(f"Last updated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
 
             # ----------------------------------------------
