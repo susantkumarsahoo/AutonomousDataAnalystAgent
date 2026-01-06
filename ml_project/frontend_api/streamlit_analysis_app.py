@@ -152,7 +152,7 @@ def analysis_dashboard(
         # ANALYSIS DASHBOARD
         # ==================================================
         if "Analysis Dashboard" in dashboard_type:
-            
+           
             df = None
             try:
                 if uploaded_file:
@@ -191,19 +191,10 @@ def analysis_dashboard(
             # TAB 1: COMPLAINT OVERVIEW
             # ----------------------------------------------
             with tab1:
+                st.success("🛠️ This project is under development.")
                 # Add a header
-                st.header("📈 Complaint Overview")
-                
-                # Add a warning message
-                st.warning("🚧 This Project is under development.")
-                
-                # Add descriptive header
-                st.markdown("""
-                ### Open Complaints Overview
-                This dashboard provides a real-time view of open complaints categorized by type and status. 
-                The pivot table below summarizes active complaint cases across different categories.
-                """)
-                
+                st.header("📈 Open-Close Complaints Overview")
+                                           
                 # Add refresh button
                 col1, col2 = st.columns([6, 1])
                 with col2:
