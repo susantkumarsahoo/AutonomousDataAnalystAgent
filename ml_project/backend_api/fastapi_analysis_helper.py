@@ -231,3 +231,51 @@ def agging_open_close_pivot_dict(dataset_path: str) -> dict:
     dict_pivot_data = pivot_data.to_dict(orient='records')
     
     return dict_pivot_data
+
+import pandas as pd
+
+import pandas as pd
+
+def open_close_complaint_report(dataset_path: str) -> dict:
+    """
+    Reads an Excel file, creates a pivot table of complaint type vs department & status,
+    adds grand totals (row + column), and returns the result as a dictionary.
+
+    Parameters
+    ----------
+    dataset_path : str
+        Path to the Excel dataset.
+
+    Returns
+    -------
+    dict
+        Dictionary representation of the pivot table with totals.
+    """
+    # Load dataset
+    df = pd.read_excel(dataset_path)
+
+    # Create pivot table
+    pivot_data = pd.pivot_table(
+        df,
+        index='COMPLAINT TYPE',
+        columns=['DEPT', 'CLOSED/OPEN'],
+        aggfunc='size',
+        fill_value=0
+    )
+
+    # Add Grand Total column (row-wise sum)
+    pivot_data['Grand_Total'] = pivot_data.sum(axis=1)
+
+    # Add Grand Total row (column-wise sum)
+    pivot_data.loc['Grand_Total'] = pivot_data.sum(axis=0)
+
+    # Ensure integers
+    pivot_data = pivot_data.astype(int)
+
+    # Reset index to make 'COMPLAINT TYPE' a column
+    pivot_data = pivot_data.reset_index()
+
+    # Convert to dictionary
+    dict_pivot_data = pivot_data.to_dict(orient='records')
+
+    return dict_pivot_data

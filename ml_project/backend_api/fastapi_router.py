@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import requests
 import datetime
+import uvicorn
+import asyncio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +21,8 @@ from ml_project.backend_api.fastapi_analysis_helper import (
     open_complaint_pivot,
     open_close_complaint_pivot,
     agging_open_pivot_dict,
-    agging_open_close_pivot_dict)
+    agging_open_close_pivot_dict,
+    open_close_complaint_report )
 
 logger = get_logger(__name__)
 
@@ -313,6 +316,33 @@ async def get_agging_open_close_pivot_dict():
         error_msg = str(CustomException(e, sys))
         logger.error(f"Aging open/close pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+@app.get("/open_close_complaint_report", tags=["Analytics"])    
+async def get_open_close_complaint_report():
+    """Get open/close complaints report"""
+    try:
+        logger.info("Open/Close complaint report endpoint accessed")
+
+        if not os.path.exists(dataset_path):
+            logger.warning(f"Dataset not found | path={dataset_path}")
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Get report data
+        response_dict = open_close_complaint_report(dataset_path)
+
+        logger.info(f"Open/Close report generated | records={len(response_dict)}")
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Open/Close report error | error={error_msg}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
 
 # -----------------------------------------------------------------------------
 # Development Server

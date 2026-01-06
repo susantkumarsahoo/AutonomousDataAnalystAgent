@@ -11,10 +11,14 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
 from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
-
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
+from ml_project.frontend_api.streamlit_cache_data import (
+    fetch_open_complaint_pivot,
+    fetch_open_close_complaint_pivot,
+    fetch_agging_open_pivot,
+    fetch_agging_open_close_pivot)
 
 config = read_yaml("ml_project/config/ml_project_config.yaml")
 dataset_path = config["data"]["raw_path"]
@@ -32,86 +36,6 @@ if sys.platform == "win32":
         pass  # Python version doesn't support reconfigure
 
 logger = get_logger(__name__)
-
-
-# =====================================================
-# CACHED API FUNCTIONS
-# =====================================================
-
-@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
-def fetch_open_complaint_pivot():
-    """Fetch open complaint pivot data from API - cached"""
-    try:
-        response = fastapi_api_request_url("/open_complaint_pivot")
-        if response is not None and response.status_code == 200:
-            response_data = response.json()
-            if response_data:
-                return pd.DataFrame(response_data), None, response.status_code
-            else:
-                return None, "No data available", response.status_code
-        else:
-            status = response.status_code if response else None
-            return None, f"API error", status
-    except Exception as e:
-        logger.error(f"Error fetching open complaint pivot: {e}")
-        return None, str(e), None
-
-
-@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
-def fetch_open_close_complaint_pivot():
-    """Fetch open/close complaint pivot data from API - cached"""
-    try:
-        response = fastapi_api_request_url("/open_close_complaint_pivot")
-        if response is not None and response.status_code == 200:
-            response_data = response.json()
-            if response_data:
-                return pd.DataFrame(response_data), None, response.status_code
-            else:
-                return None, "No data available", response.status_code
-        else:
-            status = response.status_code if response else None
-            return None, f"API error", status
-    except Exception as e:
-        logger.error(f"Error fetching open/close complaint pivot: {e}")
-        return None, str(e), None
-
-
-@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
-def fetch_agging_open_pivot():
-    """Fetch agging open pivot data from API - cached"""
-    try:
-        response = fastapi_api_request_url("/agging_open_pivot_dict")
-        if response is not None and response.status_code == 200:
-            response_data = response.json()
-            if response_data:
-                return pd.DataFrame(response_data), None, response.status_code
-            else:
-                return None, "No data available", response.status_code
-        else:
-            status = response.status_code if response else None
-            return None, f"API error", status
-    except Exception as e:
-        logger.error(f"Error fetching agging open pivot: {e}")
-        return None, str(e), None
-
-
-@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
-def fetch_agging_open_close_pivot():
-    """Fetch agging open/close pivot data from API - cached"""
-    try:
-        response = fastapi_api_request_url("/agging_open_close_pivot_dict")
-        if response is not None and response.status_code == 200:
-            response_data = response.json()
-            if response_data:
-                return pd.DataFrame(response_data), None, response.status_code
-            else:
-                return None, "No data available", response.status_code
-        else:
-            status = response.status_code if response else None
-            return None, f"API error", status
-    except Exception as e:
-        logger.error(f"Error fetching agging open/close pivot: {e}")
-        return None, str(e), None
 
 
 def style_grand_total_dataframe(df_pivot):
@@ -192,17 +116,6 @@ def analysis_dashboard(
             # ----------------------------------------------
             with tab1:
                 st.success("🛠️ This project is under development.")
-                # Add a header
-                st.header("📈 Open-Close Complaints Overview")
-                                           
-                # Add refresh button
-                col1, col2 = st.columns([6, 1])
-                with col2:
-                    if st.button("🔄 Refresh All", key="refresh_all_btn"):
-                        st.cache_data.clear()
-                        st.rerun()
-                
-                st.divider()
 
                 # ========================================
                 # SECTION 1: OPEN COMPLAINT PIVOT
@@ -281,7 +194,7 @@ def analysis_dashboard(
                 # ========================================
                 # SECTION 4: AGGING OPEN/CLOSE COMPLAINTS PIVOT
                 # ========================================
-                st.header("📊 Agging Open/Close Complaints Pivot Table")
+                st.header("📊 Agging Difference Complaints Pivot Table")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
                 with st.spinner("Loading data..."):
@@ -301,6 +214,17 @@ def analysis_dashboard(
 
                 st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
+
+                col1, col2 = st.columns([6, 1])
+
+                with col1:
+                    if st.button("🔄 Data All View"):
+                        st.info("📊 Data All View")
+
+                with col2:
+                    if st.button("🔄 Refresh All", key="refresh_all_btn"):
+                        st.cache_data.clear()
+                        st.experimental_rerun()
 
             # ----------------------------------------------
             # TAB 2: DATA TABLE
