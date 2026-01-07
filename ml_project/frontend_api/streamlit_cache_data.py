@@ -91,3 +91,43 @@ def fetch_agging_open_close_pivot():
         error_msg = str(CustomException(e, sys))
         logger.error(f"Error fetching agging open/close pivot: {error_msg}")
         return None, error_msg, None
+    
+
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+def fetch_open_close_complaint_report():
+    """Fetch open/close complaint report data from API - cached"""
+    try:
+        response = fastapi_api_request_url("/open_close_complaint_report")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error: {status}", status
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Error fetching open/close complaint report: {error_msg}")
+        return None, error_msg, None
+    
+
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+def fetch_all_agging_complaint_report():
+    """Fetch all agging complaint report data from API - cached"""
+    try:
+        response = fastapi_api_request_url("/all_agging_complaint_report")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error: {status}", status
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Error fetching all agging complaint report: {error_msg}")
+        return None, error_msg, None

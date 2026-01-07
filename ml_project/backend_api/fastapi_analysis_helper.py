@@ -25,6 +25,7 @@ def open_complaint_pivot(dataset_path: str) -> pd.DataFrame:
 
     # Filter only open complaints (handle case-insensitive and NaN values)
     df_open = df[df['CLOSED/OPEN'].str.lower().str.strip() == 'open']
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
     
     # Create pivot table
     pivot = pd.pivot_table(
@@ -74,8 +75,8 @@ def open_close_complaint_pivot(dataset_path: str) -> pd.DataFrame:
     
     # **FIX: Clean data before pivoting**
     # Remove any whitespace and handle case sensitivity
-    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip()
-    df['DEPT'] = df['DEPT'].astype(str).str.strip()
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+    df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
     df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()  # Capitalize properly
 
     # Build pivot table
@@ -130,6 +131,9 @@ def agging_open_pivot_dict(dataset_path: str) -> dict:
     
     # Ensure DATE column is datetime
     df['DATE'] = pd.to_datetime(df['DATE'])
+
+    # **FIX: Clean data before pivoting**
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
 
     # Calculate age in days
     today = pd.Timestamp.today()
@@ -193,6 +197,8 @@ def agging_open_close_pivot_dict(dataset_path: str) -> dict:
     # Ensure DATE column is datetime
     df['DATE'] = pd.to_datetime(df['DATE'])
 
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+
     # Calculate age in days
     today = pd.Timestamp.today()
     df['Age_Days'] = (today - df['DATE']).dt.days
@@ -232,9 +238,56 @@ def agging_open_close_pivot_dict(dataset_path: str) -> dict:
     
     return dict_pivot_data
 
-import pandas as pd
 
-import pandas as pd
+
+def generate_all_agging_complaint_report(dataset_path: str) -> dict:
+    """
+    Load complaint dataset, clean data, calculate age buckets,
+    build pivot table, and return as dictionary report.
+    """
+
+    # Load dataset
+    df = pd.read_excel(dataset_path)
+
+    # Ensure DATE column is datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+
+    # Clean string columns
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+    df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
+    df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()
+
+    # Calculate age in days
+    today = pd.Timestamp.today()
+    df['Age_Days'] = (today - df['DATE']).dt.days
+
+    # Define age buckets
+    bins = [0, 15, 30, 60, 90, 180, float('inf')]
+    labels = ['<15Days', '16-30Days', '31-60Days', '61-90Days', '91-180Days', '>180Days']
+    df['Age_Bucket'] = pd.cut(df['Age_Days'], bins=bins, labels=labels, right=True, include_lowest=True)
+
+    # Pivot table with complaint type + age bucket + dept + open/close
+    pivot_data_df = pd.pivot_table(
+        df,
+        values='SL.NO',
+        index=['COMPLAINT TYPE'],              # rows
+        columns=['Age_Bucket','DEPT','CLOSED/OPEN'],  # include CLOSED/OPEN in columns
+        aggfunc='count',
+        fill_value=0
+    )
+
+    # Add Grand Total column (row-wise sum)
+    pivot_data_df['Grand_Total'] = pivot_data_df.sum(axis=1)
+
+    # Add Grand Total row (column-wise sum)
+    pivot_data_df.loc['Grand_Total'] = pivot_data_df.sum(axis=0)
+
+    # Convert to dictionary
+    all_aging_dict = pivot_data_df.to_dict(orient='records')
+
+    return all_aging_dict
+
+
 
 def open_close_complaint_report(dataset_path: str) -> dict:
     """
@@ -253,6 +306,8 @@ def open_close_complaint_report(dataset_path: str) -> dict:
     """
     # Load dataset
     df = pd.read_excel(dataset_path)
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+
 
     # Create pivot table
     pivot_data = pd.pivot_table(
@@ -271,6 +326,13 @@ def open_close_complaint_report(dataset_path: str) -> dict:
 
     # Ensure integers
     pivot_data = pivot_data.astype(int)
+
+    # **FIX: Flatten the MultiIndex columns to strings**
+    if isinstance(pivot_data.columns, pd.MultiIndex):
+        pivot_data.columns = [
+            '_'.join(map(str, col)).strip('_') if isinstance(col, tuple) else str(col)
+            for col in pivot_data.columns
+        ]
 
     # Reset index to make 'COMPLAINT TYPE' a column
     pivot_data = pivot_data.reset_index()

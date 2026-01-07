@@ -10,7 +10,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
-from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
+from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot,generate_all_agging_complaint_report
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
@@ -18,7 +18,9 @@ from ml_project.frontend_api.streamlit_cache_data import (
     fetch_open_complaint_pivot,
     fetch_open_close_complaint_pivot,
     fetch_agging_open_pivot,
-    fetch_agging_open_close_pivot)
+    fetch_agging_open_close_pivot,
+    fetch_open_close_complaint_report,
+    fetch_all_agging_complaint_report )
 
 config = read_yaml("ml_project/config/ml_project_config.yaml")
 dataset_path = config["data"]["raw_path"]
@@ -124,7 +126,7 @@ def analysis_dashboard(
                     df_pivot, error, status_code = fetch_open_complaint_pivot()
 
                 if error is None and df_pivot is not None:
-                    st.subheader("📊 Open Complaints Pivot Table")
+                    st.subheader("📊 Open Complaints Reports")
                     st.caption("Grand Total row is highlighted in red for easy identification")
                     
                     styled_df = style_grand_total_dataframe(df_pivot)
@@ -146,7 +148,7 @@ def analysis_dashboard(
                 # ========================================
                 # SECTION 2: OPEN/CLOSE COMPLAINTS PIVOT
                 # ========================================
-                st.subheader("📊 Open/Close Complaints Pivot Table")
+                st.subheader("📊 Open/Close Complaints Reports")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
                 with st.spinner("Loading data..."):
@@ -170,7 +172,7 @@ def analysis_dashboard(
                 # ========================================
                 # SECTION 3: AGGING OPEN COMPLAINTS PIVOT
                 # ========================================
-                st.header("📊 Agging Open Complaints Pivot Table")
+                st.header("📊 Agging Open Complaints Reports")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
                 with st.spinner("Loading data..."):
@@ -194,7 +196,7 @@ def analysis_dashboard(
                 # ========================================
                 # SECTION 4: AGGING OPEN/CLOSE COMPLAINTS PIVOT
                 # ========================================
-                st.header("📊 Agging Difference Complaints Pivot Table")
+                st.header("📊 Agging Day Difference All Complaints Reports")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
                 with st.spinner("Loading data..."):
@@ -215,6 +217,61 @@ def analysis_dashboard(
                 st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
 
+                # ========================================
+                # SECTION 5: OPEN/CLOSE COMPLAINT REPORT
+                # ========================================
+                st.header("📊 All Complaint Report")
+                st.caption("View complaints categorized by type, department, and status (Open/Closed)")
+
+                with st.spinner("Loading data..."):
+                    df_pivot_05, error_05, status_code_05 = fetch_open_close_complaint_report()
+
+                if error_05 is None and df_pivot_05 is not None:
+                    styled_df = style_grand_total_dataframe(df_pivot_05)
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                    logger.info("Tab 1: Open Close Complaint Report displayed successfully")
+
+                    st.caption(
+                        f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                else:
+                    if status_code_05:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code_05}")
+                        logger.error(
+                            f"Tab 1: API request failed with status code {status_code_05}")
+                    else:
+                        st.error(f"❌ Error: {error_05}")
+                        logger.error(f"Tab 1: Error - {error_05}")
+
+                st.divider()
+
+
+                # ========================================
+                # SECTION 6: ALL AGGING COMPLAINT REPORT
+                # ========================================
+                st.header("📊 All Agging Complaint Report")
+                st.caption("View complaints categorized by type, department, and status (Open/Closed)")
+
+                # Add a button to trigger data loading
+                if st.button("🔄 Load All Agging Complaint Report", key="load_all_agging_report"):
+                    with st.spinner("Loading data..."):
+                        df_pivot_06, error_06, status_code_06 = fetch_all_agging_complaint_report()
+
+                    if error_06 is None and df_pivot_06 is not None:                    
+                        styled_df = style_grand_total_dataframe(df_pivot_06)
+                        st.dataframe(styled_df, use_container_width=True, height=400)
+                        logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    else:
+                        if status_code_06:
+                            st.error(f"❌ Failed to fetch data. Status code: {status_code_06}")
+                            logger.error(f"Tab 1: API request failed with status code {status_code_06}")
+                        else:
+                            st.error(f"❌ Error: {error_06}")
+                            logger.error(f"Tab 1: Error - {error_06}")
+                else:
+                    st.info("👆 Click the button above to load the report")
+                st.divider()
+
                 col1, col2 = st.columns([6, 1])
 
                 with col1:
@@ -232,6 +289,11 @@ def analysis_dashboard(
             with tab2:
                 st.subheader("Data Table")
                 st.warning("🚧 This Project is under development.")
+
+                # generate_all_agging_complaint_report(dataset_path)
+                df = generate_all_agging_complaint_report(dataset_path)
+
+                st.dataframe(df, use_container_width=True, height=400)
 
             # ----------------------------------------------
             # TAB 3: SUMMARY

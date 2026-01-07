@@ -22,7 +22,8 @@ from ml_project.backend_api.fastapi_analysis_helper import (
     open_close_complaint_pivot,
     agging_open_pivot_dict,
     agging_open_close_pivot_dict,
-    open_close_complaint_report )
+    open_close_complaint_report,
+    generate_all_agging_complaint_report )
 
 logger = get_logger(__name__)
 
@@ -339,6 +340,29 @@ async def get_open_close_complaint_report():
     except Exception as e:
         error_msg = str(CustomException(e, sys))
         logger.error(f"Open/Close report error | error={error_msg}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+@app.get("/all_agging_complaint_report", tags=["Analytics"])    
+async def get_generate_all_agging_complaint_report():
+    """Get open complaints report"""
+    try:
+        logger.info("Generate all agging Complaint report endpoint accessed")
+
+        if not os.path.exists(dataset_path):
+            logger.warning(f"Dataset not found | path={dataset_path}")
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Get report data
+        response_dict = generate_all_agging_complaint_report(dataset_path)
+
+        logger.info(f"Open report generated | records={len(response_dict)}")
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Open report error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
