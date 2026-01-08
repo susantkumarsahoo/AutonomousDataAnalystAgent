@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import io
 import requests
 import pandas as pd
 import numpy as np
@@ -10,7 +11,8 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
-from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot,generate_all_agging_complaint_report
+from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
+from ml_project.frontend_api.streamlit_analysis_helper import generate_all_agging_complaint_report,style_grand_total_dataframe
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
@@ -38,20 +40,6 @@ if sys.platform == "win32":
         pass  # Python version doesn't support reconfigure
 
 logger = get_logger(__name__)
-
-
-def style_grand_total_dataframe(df_pivot):
-    """Apply styling to highlight Grand_Total row"""
-    if 'Grand_Total' in df_pivot['COMPLAINT TYPE'].values:
-        def highlight_grand_total(row):
-            if row['COMPLAINT TYPE'] == 'Grand_Total':
-                return ['background-color: #ff0000; color: white; font-weight: bold'] * len(row)
-            else:
-                return [''] * len(row)
-        return df_pivot.style.apply(highlight_grand_total, axis=1)
-    else:
-        return df_pivot
-
 
 def analysis_dashboard(
     dashboard_type: str,
@@ -241,12 +229,78 @@ def analysis_dashboard(
                     else:
                         st.error(f"❌ Error: {error_05}")
                         logger.error(f"Tab 1: Error - {error_05}")
-
+                        st.caption(
+                            f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
-
 
                 # ========================================
                 # SECTION 6: ALL AGGING COMPLAINT REPORT
+                # ======================================== 
+                st.header("📊 All Department Complaint Type Report")
+                st.caption("View complaints categorized by type, department, and status (Open/Closed)")
+
+                # Validate dataset path exists
+                if not dataset_path:
+                    st.error("❌ Dataset path is not provided.")
+                    st.info("ℹ️ Please configure the dataset path in the settings.")
+
+                elif not os.path.exists(dataset_path):
+                    st.error(f"❌ Dataset not found at: `{dataset_path}`")
+                    st.info("ℹ️ Please verify the file path and try again.")
+
+                else:
+                    # Show loading spinner while processing
+                    with st.spinner("📊 Loading data..."):
+                        complaint_data = generate_all_agging_complaint_report(dataset_path)
+
+                    # Check if data is None or empty (handle both list and DataFrame)
+                    if complaint_data is None:
+                        st.warning("⚠️ No data available to display.")
+                        st.info("ℹ️ The dataset may be empty or contain no valid records.")
+                    else:
+                        complaint_df = complaint_data
+
+                        # Display success message with record count
+                        st.success(f"✅ Successfully loaded {len(complaint_df):,} records.")
+
+                        # Display dataframe
+                        st.dataframe(
+                            complaint_df,
+                            use_container_width=True,
+                            height=400
+                        )
+
+                        # Save DataFrame to BytesIO buffer
+                        buffer = io.BytesIO()
+
+                        # Create a copy and flatten MultiIndex columns if they exist
+                        df_to_save = complaint_df.copy()
+
+                        # Check if columns are MultiIndex and flatten them
+                        if isinstance(df_to_save.columns, pd.MultiIndex):
+                            # Flatten MultiIndex columns by joining levels with underscore
+                            df_to_save.columns = [
+                                '_'.join(map(str, col)).strip('_') for col in df_to_save.columns.values
+                            ]
+
+                        # Now save to Excel
+                        df_to_save.to_excel(buffer, index=False, engine='openpyxl')
+                        buffer.seek(0)
+
+                        # Download button
+                        st.download_button(
+                            label="📥 Download Data as Excel",
+                            data=buffer,
+                            file_name="complaint_report.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+
+                        logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        st.divider()
+                           
+                # ========================================
+                # SECTION 7: ALL AGGING COMPLAINT REPORT
                 # ========================================
                 st.header("📊 All Agging Complaint Report")
                 st.caption("View complaints categorized by type, department, and status (Open/Closed)")
@@ -289,11 +343,6 @@ def analysis_dashboard(
             with tab2:
                 st.subheader("Data Table")
                 st.warning("🚧 This Project is under development.")
-
-                # generate_all_agging_complaint_report(dataset_path)
-                df = generate_all_agging_complaint_report(dataset_path)
-
-                st.dataframe(df, use_container_width=True, height=400)
 
             # ----------------------------------------------
             # TAB 3: SUMMARY

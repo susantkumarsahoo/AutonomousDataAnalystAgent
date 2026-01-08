@@ -5,6 +5,8 @@ import requests
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
+import numpy as np
+from main import demo_dashboard
 from ml_project.frontend_api.streamlit_analysis_app import analysis_dashboard
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url, check_api_status
 from ml_project.logger.custom_logger import get_logger
@@ -244,9 +246,13 @@ try:
             # Strip emoji from dashboard_type for logging to avoid encoding issues
             dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
             logger.info("Rendering dashboard | type=%s", dashboard_type_clean)
-            
+            st.balloons()           
             # Render the selected dashboard
             analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
+            logger.info("Streamlit dashboard rendered successfully")
+
+            demo_dashboard(dashboard_type, dataset_path, uploaded_file)
+
             
             logger.info("Streamlit dashboard rendered successfully")
     
