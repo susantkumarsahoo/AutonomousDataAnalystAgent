@@ -251,7 +251,11 @@ def analysis_dashboard(
                 else:
                     # Show loading spinner while processing
                     with st.spinner("📊 Loading data..."):
-                        complaint_data = generate_all_agging_complaint_report(dataset_path)
+                        @st.cache_data
+                        def load_complaint_data(path):
+                            return generate_all_agging_complaint_report(path)
+                        
+                        complaint_data = load_complaint_data(dataset_path)
 
                     # Check if data is None or empty (handle both list and DataFrame)
                     if complaint_data is None:
@@ -298,7 +302,7 @@ def analysis_dashboard(
                         logger.info("Tab 1: All Agging Complaint Report displayed successfully")
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         st.divider()
-                           
+                        
                 # ========================================
                 # SECTION 7: ALL AGGING COMPLAINT REPORT
                 # ========================================

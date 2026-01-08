@@ -8,6 +8,11 @@ import sys
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
+from ml_project.utils.helper import read_yaml
+
+config = read_yaml("ml_project/config/ml_project_config.yaml")
+dataset_path = config["data"]["raw_path"]
+
 logger = get_logger(__name__)
 
 # CACHED API FUNCTIONS
@@ -131,3 +136,4 @@ def fetch_all_agging_complaint_report():
         error_msg = str(CustomException(e, sys))
         logger.error(f"Error fetching all agging complaint report: {error_msg}")
         return None, error_msg, None
+   
