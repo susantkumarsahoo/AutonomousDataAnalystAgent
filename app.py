@@ -6,11 +6,12 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 import numpy as np
-from main import demo_dashboard
 from ml_project.frontend_api.streamlit_analysis_app import analysis_dashboard
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url, check_api_status
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
+#from main import demo_dashboard
+
 
 API_URL = "http://localhost:8000"
 FASTAPI_URL = "http://localhost:8000"
@@ -251,7 +252,7 @@ try:
             analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
             logger.info("Streamlit dashboard rendered successfully")
 
-            demo_dashboard(dashboard_type, dataset_path, uploaded_file)
+            #demo_dashboard(dashboard_type, dataset_path, uploaded_file)
 
             
             logger.info("Streamlit dashboard rendered successfully")

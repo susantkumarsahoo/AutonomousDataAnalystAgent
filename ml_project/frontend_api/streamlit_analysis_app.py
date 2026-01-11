@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
 from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
-from ml_project.frontend_api.streamlit_analysis_helper import generate_all_agging_complaint_report,style_grand_total_dataframe
+from ml_project.frontend_api.streamlit_analysis_helper import generate_all_agging_complaint_report,style_grand_total_dataframe,close_power_outage_duration
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
@@ -302,6 +302,85 @@ def analysis_dashboard(
                         logger.info("Tab 1: All Agging Complaint Report displayed successfully")
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         st.divider()
+
+
+
+
+
+
+
+                        st.subheader("Power Outage Duration Analysis")
+                        
+                        # Date picker
+                        selected_date = st.date_input(
+                            "Select Date",
+                            value=datetime.today(),
+                            help="Choose a date to analyze power outage durations"
+                        )
+                        
+
+                        if dataset_path is not None:
+                            try:
+                                # Show loading spinner
+                                with st.spinner('Processing data...'):
+                                    # Get pivot table - pass uploaded_file and selected_date
+                                    pivot_df = close_power_outage_duration(dataset_path, selected_date)
+                                
+                                # Display success message
+                                st.success(f"✅ Data processed successfully for {selected_date}")
+                                
+                                # Checkbox to show raw data
+                                show_raw_data = st.checkbox("📋 Show Raw Data", value=False)
+                                
+                                if show_raw_data:
+                                    st.subheader("Raw Dataset")
+                                    raw_df = pd.read_excel(uploaded_file)
+                                    st.dataframe(
+                                        raw_df,
+                                        use_container_width=True,
+                                        height=300
+                                    )
+                                    st.divider()
+                                
+                                # Display the pivot table
+                                st.subheader("Duration Analysis Table")
+                                st.dataframe(
+                                    pivot_df,
+                                    use_container_width=True,
+                                    height=400
+                                )
+                                
+                                # Download button for Excel file
+                                from io import BytesIO
+                                
+                                # Create Excel file in memory
+                                output = BytesIO()
+                                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                                    pivot_df.to_excel(writer, sheet_name='Power Outage Duration')
+                                excel_data = output.getvalue()
+                                
+                                st.download_button(
+                                    label="📥 Download as Excel",
+                                    data=excel_data,
+                                    file_name=f"power_outage_duration_{selected_date}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                )
+                                
+                                # Optional: Show summary statistics
+                                with st.expander("📊 Summary Statistics"):
+                                    total_complaints = pivot_df.loc[('Grand Total', '', ''), :].sum()
+                                    st.metric("Total Complaints", int(total_complaints))
+                                    
+                            except Exception as e:
+                                st.error(f"❌ Error processing file: {str(e)}")
+                                st.info("Please ensure your Excel file has the required columns: DATE, COMPLAINT TYPE, COMPLAINT RECEIVED TIME, FINAL RESPONSE TIME, DIVISION, SUB-DIVISION, SHIFT DUTY, CLOSED/OPEN")
+                        else:
+                            st.info("👆 Please upload an Excel file to begin analysis")
+
+
+
+
+                    
                         
                 # ========================================
                 # SECTION 7: ALL AGGING COMPLAINT REPORT
@@ -327,7 +406,7 @@ def analysis_dashboard(
                             st.error(f"❌ Error: {error_06}")
                             logger.error(f"Tab 1: Error - {error_06}")
                 else:
-                    st.info("👆 Click the button above to load the report")
+                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.divider()
 
                 col1, col2 = st.columns([6, 1])
