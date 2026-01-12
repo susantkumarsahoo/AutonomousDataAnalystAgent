@@ -9,9 +9,12 @@ from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
 from ml_project.utils.helper import read_yaml
+from ml_project.frontend_api.streamlit_analysis_helper import close_power_outage_duration
 
 config = read_yaml("ml_project/config/ml_project_config.yaml")
 dataset_path = config["data"]["raw_path"]
+
+
 
 logger = get_logger(__name__)
 
@@ -137,3 +140,13 @@ def fetch_all_agging_complaint_report():
         logger.error(f"Error fetching all agging complaint report: {error_msg}")
         return None, error_msg, None
    
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_close_power_outage_duration(dataset_path, selected_date):
+    """Fetch open/close complaint report data - cached"""
+    try:
+        result = close_power_outage_duration(dataset_path, selected_date)
+        return result
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Error fetching open/close complaint report: {error_msg}")
+        return None

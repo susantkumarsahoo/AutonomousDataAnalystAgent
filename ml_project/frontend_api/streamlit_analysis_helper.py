@@ -93,8 +93,7 @@ def generate_all_agging_complaint_report(dataset_path: str) -> dict:
 import pandas as pd
 from datetime import datetime, time
 
-@st.cache_data
-def close_power_outage_duration(dataset_path):
+def close_power_outage_duration(dataset_path, selected_day):
     # Read dataset
     main_df = pd.read_excel(dataset_path)
     df = main_df.copy()
@@ -103,13 +102,13 @@ def close_power_outage_duration(dataset_path):
     df['DATE'] = pd.to_datetime(df['DATE'])
     
     # Filter for specific day
-    day_filter_data = df[df['DATE'].dt.date == pd.to_datetime("2025-06-25").date()]
+    day_filter_data = df[df['DATE'].dt.date == pd.to_datetime(selected_day).date()].copy()
     
     # Filter complaint types
     power_outage_data = day_filter_data[
         (day_filter_data['COMPLAINT TYPE'] == 'Power Outage') | 
         (day_filter_data['COMPLAINT TYPE'] == 'No Power Supply')
-    ]
+    ].copy()
     
     # Convert time objects into datetime for subtraction
     def to_datetime(t):
@@ -121,21 +120,23 @@ def close_power_outage_duration(dataset_path):
             return datetime.combine(datetime.today(), t)
         return pd.to_datetime(t)
     
-    # Apply conversion
-    start = power_outage_data['COMPLAINT RECEIVED TIME'].apply(to_datetime)
-    end   = power_outage_data['FINAL RESPONSE TIME'].apply(to_datetime)
+    # Apply conversion using .loc to avoid SettingWithCopyWarning
+    power_outage_data.loc[:, 'COMPLAINT_RECEIVED_DT'] = power_outage_data['COMPLAINT RECEIVED TIME'].apply(to_datetime)
+    power_outage_data.loc[:, 'FINAL_RESPONSE_DT'] = power_outage_data['FINAL RESPONSE TIME'].apply(to_datetime)
     
     # Calculate difference in hours
-    power_outage_data['DURATION_HOURS'] = (end - start).dt.total_seconds() / 3600
+    power_outage_data.loc[:, 'DURATION_HOURS'] = (
+        power_outage_data['FINAL_RESPONSE_DT'] - power_outage_data['COMPLAINT_RECEIVED_DT']
+    ).dt.total_seconds() / 3600
     
     # Round to nearest whole hour
-    power_outage_data['DURATION_HOURS_ROUNDED'] = power_outage_data['DURATION_HOURS'].round()
+    power_outage_data.loc[:, 'DURATION_HOURS_ROUNDED'] = power_outage_data['DURATION_HOURS'].round()
     
     # Integer hours (floor)
-    power_outage_data['DURATION_HOURS_INT'] = power_outage_data['DURATION_HOURS'].fillna(0).astype(int)
+    power_outage_data.loc[:, 'DURATION_HOURS_INT'] = power_outage_data['DURATION_HOURS'].fillna(0).astype(int)
     
     # Select relevant columns
-    close_open_hour = power_outage_data[['DIVISION','SUB-DIVISION', 'SHIFT DUTY', 'CLOSED/OPEN', 'DURATION_HOURS_INT']].copy()
+    close_open_hour = power_outage_data[['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY', 'CLOSED/OPEN', 'DURATION_HOURS_INT']].copy()
     
     # Define classification function
     def classify_duration(x):
@@ -149,22 +150,22 @@ def close_power_outage_duration(dataset_path):
             return ">8"
         else:
             return None
-    
+
     # Apply classification
-    close_open_hour["DURATION_RANGE"] = close_open_hour["DURATION_HOURS_INT"].apply(classify_duration)
+    close_open_hour.loc[:, "DURATION_RANGE"] = close_open_hour["DURATION_HOURS_INT"].apply(classify_duration)
 
     pivot_df = pd.pivot_table(
         close_open_hour,
         values='DURATION_HOURS_INT',
-        index=['DIVISION','SUB-DIVISION','SHIFT DUTY'],
-        columns=['DURATION_RANGE','CLOSED/OPEN'],
+        index=['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY'],
+        columns=['DURATION_RANGE', 'CLOSED/OPEN'],
         aggfunc='count',
         fill_value=0,
         margins=True,          
-        margins_name='Grand Total'
+        margins_name='Grand Total',
+        observed=False  # Added to suppress FutureWarning
     )
     
     return pivot_df
-
 
 
