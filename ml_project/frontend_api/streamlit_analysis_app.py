@@ -309,7 +309,7 @@ def analysis_dashboard(
                 # SECTION 7: POWER OUTAGE DURATION
                 # ======================================== 
 
-                st.subheader("Power Outage Duration Analysis")
+                st.header("X-Dashboard Shift wise Power Outage Duration Hour Analysis")
 
                 # Date picker with key to prevent auto-rerun
                 selected_date = st.date_input(
@@ -369,139 +369,147 @@ def analysis_dashboard(
                         st.warning("⚠️ Dataset path is not configured. Please check your configuration.")
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-                                        
-                # ========================================
-                # SECTION 8: ALL AGGING COMPLAINT REPORT
-                # ========================================
-                st.header("📊 All Complaint Reports")
-                st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-                # Add a button to trigger data loading
-                if st.button("🔄 Load All Agging Complaint Report", key="load_all_agging_report"):
-                    with st.spinner("Loading data..."):
-                        df_pivot_06, error_06, status_code_06 = fetch_all_agging_complaint_report()
 
-                    if error_06 is None and df_pivot_06 is not None:                    
-                        styled_df = style_grand_total_dataframe(df_pivot_06)
-                        st.dataframe(styled_df, use_container_width=True, height=400)
-                        logger.info("Tab 1: All Agging Complaint Report displayed successfully")
-                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                    else:
-                        if status_code_06:
-                            st.error(f"❌ Failed to fetch data. Status code: {status_code_06}")
-                            logger.error(f"Tab 1: API request failed with status code {status_code_06}")
+
+                # ========================================
+                # ALL SECTIONS IN 5-COLUMN LAYOUT
+                # ========================================
+
+                st.divider()
+
+                st.header("All Complaint Reports View")
+
+                # Create 5 columns
+                col1, col2, col3, col4, col5 = st.columns(5)
+
+                # ========================================
+                # COLUMN 1: SECTION 8 - All Agging Complaint Report
+                # ========================================
+                with col1:
+                    st.subheader("📊Report 01")
+
+                    if st.button("🔄 Load All Agging Complaint Report", key="load_all_agging_report"):
+                        with st.spinner("Loading data..."):
+                            df_pivot_06, error_06, status_code_06 = fetch_all_agging_complaint_report()
+
+                        if error_06 is None and df_pivot_06 is not None:                    
+                            styled_df = style_grand_total_dataframe(df_pivot_06)
+                            st.dataframe(styled_df, use_container_width=True, height=400)
+                            logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         else:
-                            st.error(f"❌ Error: {error_06}")
-                            logger.error(f"Tab 1: Error - {error_06}")
-                else:
-                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-                # ========================================
-                # SECTION 9: DATA ALL VIEW
-                # ========================================
-                st.header("📊 All Data Fech View")
-                st.caption("View all data in a single table")
-
-                # Add a button to trigger data loading
-                if st.button("🔄 Load Data All View", key="load_data_all_view"):
-                    with st.spinner("Loading data..."):
-                        df_07, error_07, status_code_07 = fetch_open_close_complaint_pivot()
-
-                    if error_07 is None and df_07 is not None:                    
-                        st.dataframe(df_07, use_container_width=True, height=400)
-                        logger.info("Tab 1: Data All View displayed successfully")
-                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                            if status_code_06:
+                                st.error(f"❌ Failed to fetch data. Status code: {status_code_06}")
+                                logger.error(f"Tab 1: API request failed with status code {status_code_06}")
+                            else:
+                                st.error(f"❌ Error: {error_06}")
+                                logger.error(f"Tab 1: Error - {error_06}")
                     else:
-                        if status_code_07:
-                            st.error(f"❌ Failed to fetch data. Status code: {status_code_07}")
-                            logger.error(f"Tab 1: API request failed with status code {status_code_07}")
-                        else:
-                            st.error(f"❌ Error: {error_07}")
-                            logger.error(f"Tab 1: Error - {error_07}")
-                else:
-                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-                # ========================================
-                # SECTION 10: Generate all agging complaints report
-                # ========================================
-                st.header("📊 Generate All Agging Complaint Report")
-                st.caption("Generate a report of all agging complaints")
-
-                # Add a button to trigger data loading
-                if st.button("🔄 Generate All Agging Complaint Report", key="generate_all_agging_report"):
-                    with st.spinner("Generating report..."):
-                        df_09, error_09, status_code_09 = generate_all_agging_complaint_report()
-
-                    if error_09 is None and df_09 is not None:                    
-                        st.dataframe(df_09, use_container_width=True, height=400)
-                        logger.info("Tab 1: All Agging Complaint Report displayed successfully")
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                    else:
-                        if status_code_09:
-                            st.error(f"❌ Failed to fetch data. Status code: {status_code_09}")
-                            logger.error(f"Tab 1: API request failed with status code {status_code_09}")
+
+                # ========================================
+                # COLUMN 2: SECTION 9 - Data All View
+                # ========================================
+                with col2:
+                    st.subheader("📊 Report 02")
+
+                    if st.button("🔄 Load Data All View Open Close Complaint Report", key="load_data_all_view"):
+                        with st.spinner("Loading data..."):
+                            df_07, error_07, status_code_07 = fetch_open_close_complaint_pivot()
+
+                        if error_07 is None and df_07 is not None:                    
+                            st.dataframe(df_07, use_container_width=True, height=400)
+                            logger.info("Tab 1: Data All View displayed successfully")
+                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         else:
-                            st.error(f"❌ Error: {error_09}")
-                            logger.error(f"Tab 1: Error - {error_09}")
-                else:
-                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-                # ========================================
-                # SECTION 11: fetch_agging_open_pivot
-                # ========================================
-                st.header("📊 Generate Agging Open Report")
-                st.caption("Generate a report of all agging open complaints")
-
-                # Add a button to trigger data loading
-                if st.button("🔄 Generate Agging Open Report", key="generate_agging_open_report"):
-                    with st.spinner("Generating report..."):
-                        df_10, error_10, status_code_10 = fetch_agging_open_pivot()
-
-                    if error_10 is None and df_10 is not None:                    
-                        st.dataframe(df_10, use_container_width=True, height=400)
-                        logger.info("Tab 1: Agging Open Report displayed successfully")
+                            if status_code_07:
+                                st.error(f"❌ Failed to fetch data. Status code: {status_code_07}")
+                                logger.error(f"Tab 1: API request failed with status code {status_code_07}")
+                            else:
+                                st.error(f"❌ Error: {error_07}")
+                                logger.error(f"Tab 1: Error - {error_07}")
+                    else:
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                    else:
-                        if status_code_10:
-                            st.error(f"❌ Failed to fetch data. Status code: {status_code_10}")
-                            logger.error(f"Tab 1: API request failed with status code {status_code_10}")
+
+                # ========================================
+                # COLUMN 3: SECTION 10 - Generate All Agging Complaints Report
+                # ========================================
+                with col3:
+                    st.subheader("📊 Report 03")
+
+                    if st.button("🔄 Load Generate All Agging Complaint Report", key="generate_all_agging_report"):
+                        with st.spinner("Generating report..."):
+                            df_09, error_09, status_code_09 = generate_all_agging_complaint_report()
+
+                        if error_09 is None and df_09 is not None:                    
+                            st.dataframe(df_09, use_container_width=True, height=400)
+                            logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         else:
-                            st.error(f"❌ Error: {error_10}")
-                            logger.error(f"Tab 1: Error - {error_10}")
-                else:
-                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-
-
-                # ========================================
-                # SECTION 12: Open Complaints Reports
-                # ========================================
-
-                st.subheader("📊 Open Complaints Reports")
-                st.caption("Grand Total row is highlighted in red for easy identification")
-                
-                # Add a button to trigger data loading
-                if st.button("🔄 Load Open Complaints Report", key="load_open_complaints"):
-                    with st.spinner("Loading data..."):
-                        df_pivot, error, status_code = fetch_open_complaint_pivot()
-
-                    if error is None and df_pivot is not None:
-                        styled_df = style_grand_total_dataframe(df_pivot)
-                        st.dataframe(styled_df, use_container_width=True, height=400)
-                        logger.info("Tab 1: Complaint overview displayed successfully")
+                            if status_code_09:
+                                st.error(f"❌ Failed to fetch data. Status code: {status_code_09}")
+                                logger.error(f"Tab 1: API request failed with status code {status_code_09}")
+                            else:
+                                st.error(f"❌ Error: {error_09}")
+                                logger.error(f"Tab 1: Error - {error_09}")
+                    else:
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                    else:
-                        if status_code:
-                            st.error(f"❌ Failed to fetch data. Status code: {status_code}")
-                            st.info("The API service may be experiencing issues. Please try again in a few moments.")
-                            logger.error(f"Tab 1: API request failed with status code {status_code}")
-                        else:
-                            st.error(f"❌ Error: {error}")
-                            st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
-                            logger.error(f"Tab 1: Error - {error}")
 
-                else:
-                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                # ========================================
+                # COLUMN 4: SECTION 11 - Agging Open Report
+                # ========================================
+                with col4:
+                    st.subheader("📊 Report 04")
+
+                    if st.button("🔄 Load Generate Agging Open Report", key="generate_agging_open_report"):
+                        with st.spinner("Generating report..."):
+                            df_10, error_10, status_code_10 = fetch_agging_open_pivot()
+
+                        if error_10 is None and df_10 is not None:                    
+                            st.dataframe(df_10, use_container_width=True, height=400)
+                            logger.info("Tab 1: Agging Open Report displayed successfully")
+                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        else:
+                            if status_code_10:
+                                st.error(f"❌ Failed to fetch data. Status code: {status_code_10}")
+                                logger.error(f"Tab 1: API request failed with status code {status_code_10}")
+                            else:
+                                st.error(f"❌ Error: {error_10}")
+                                logger.error(f"Tab 1: Error - {error_10}")
+                    else:
+                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+                # ========================================
+                # COLUMN 5: SECTION 12 - Open Complaints Reports
+                # ========================================
+                with col5:
+                    st.subheader("📊 Report 05")
+                    
+                    if st.button("🔄 Load Open Complaints Report", key="load_open_complaints"):
+                        with st.spinner("Loading data..."):
+                            df_pivot, error, status_code = fetch_open_complaint_pivot()
+
+                        if error is None and df_pivot is not None:
+                            styled_df = style_grand_total_dataframe(df_pivot)
+                            st.dataframe(styled_df, use_container_width=True, height=400)
+                            logger.info("Tab 1: Complaint overview displayed successfully")
+                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        else:
+                            if status_code:
+                                st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                                st.info("The API service may be experiencing issues. Please try again in a few moments.")
+                                logger.error(f"Tab 1: API request failed with status code {status_code}")
+                            else:
+                                st.error(f"❌ Error: {error}")
+                                st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
+                                logger.error(f"Tab 1: Error - {error}")
+                    else:
+                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+
+
                 
                     # Divider
                 st.divider()
