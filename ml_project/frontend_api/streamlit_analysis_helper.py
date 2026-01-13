@@ -93,6 +93,7 @@ def generate_all_agging_complaint_report(dataset_path: str) -> dict:
 import pandas as pd
 from datetime import datetime, time
 
+
 def close_power_outage_duration(dataset_path, selected_day):
     # Read dataset
     main_df = pd.read_excel(dataset_path)
@@ -161,16 +162,47 @@ def close_power_outage_duration(dataset_path, selected_day):
     close_open_hour.loc[:, "DURATION_RANGE"] = close_open_hour["DURATION_HOURS_INT"].apply(classify_duration)
 
     # Pivot table
-    pivot_df = pd.pivot_table(
+    pivot = pd.pivot_table(
         close_open_hour,
         values='DURATION_HOURS_INT',
         index=['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY'],
         columns=['DURATION_RANGE', 'CLOSED/OPEN'],
         aggfunc='count',
         fill_value=0,
-        margins=True,          
-        margins_name='Grand Total',
+        margins=True,
+        margins_name='Grand Total',   # ✅ added this line
         observed=False
     )
+
     
-    return pivot_df
+    pivot_df = pivot.reset_index()
+    pivot_df.columns = ['_'.join([str(c) for c in col if c]) for col in pivot_df.columns.values]
+
+    pivot_df_siftA = pivot_df[pivot_df['SHIFT DUTY'] == 'A']
+    pivot_df_siftB = pivot_df[pivot_df['SHIFT DUTY'] == 'B']
+    pivot_df_siftC = pivot_df[pivot_df['SHIFT DUTY'] == 'C']
+
+    # Concatenate properly
+    merge_df = pd.concat([pivot_df_siftA, pivot_df_siftB, pivot_df_siftC], axis=0)
+    merge_df["Total Complaint Count (A+B+C)"] = merge_df[['<2','2<4', '4<8', '>8']].sum(axis=1)
+    
+    # Separate numeric and categorical columns
+    numeric_cols = merge_df.select_dtypes(include='number').columns
+    categorical_cols = merge_df.select_dtypes(exclude='number').columns
+
+    # Create totals for numeric columns
+    totals = merge_df[numeric_cols].sum().astype(int)
+
+    # Fill categorical columns with a label
+    for col in categorical_cols:
+        totals[col] = "Grand Total"
+
+    # Append totals row
+    merge_df.loc['Grand Total'] = totals
+    final_df = merge_df[['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY',
+                     'Total Complaint Count (A+B+C)', 
+                     '<2', '2<4', '4<8', '>8', 
+                     'Grand Total']]
+
+    
+    return final_df
