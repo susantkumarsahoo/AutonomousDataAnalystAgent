@@ -36,7 +36,7 @@ dataset = config["data"]["raw_path"]
 from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 
 try:
-    dataset_path = get_dataset_path("data/raw")
+    dataset_path = get_dataset_path("data/raw_path")
     print(f"Dataset found at: {dataset_path}")
 except DatasetNotFoundError as e:
     print(f"Error: {e}")

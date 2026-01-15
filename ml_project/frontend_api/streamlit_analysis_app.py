@@ -32,7 +32,7 @@ dataset = config["data"]["raw_path"]
 from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 
 try:
-    dataset_path = get_dataset_path("data/raw")
+    dataset_path = get_dataset_path("data/raw_path")
     print(f"Dataset found at: {dataset_path}")
 except DatasetNotFoundError as e:
     print(f"Error: {e}")
@@ -296,10 +296,15 @@ def analysis_dashboard(
                 if "selected_outage_date" not in st.session_state:
                     st.session_state.selected_outage_date = datetime.today()
 
-                # Date picker (just stores the date, no processing yet)
+                # Initialize a flag to track if analysis should run
+                if "run_analysis" not in st.session_state:
+                    st.session_state.run_analysis = False
+
+                # Date picker with a unique key to prevent auto-triggering
                 selected_date = st.date_input(
                     "Select Date",
                     value=st.session_state.selected_outage_date,
+                    key="date_picker_outage",  # Add unique key
                     help="Choose a date to analyze power outage durations"
                 )
 
@@ -307,14 +312,17 @@ def analysis_dashboard(
                 if st.button("🔍 Restoration Duration Hour Analysis Reports", key="analyze_button"):
                     # Update session state only when button is clicked
                     st.session_state.selected_outage_date = selected_date
+                    st.session_state.run_analysis = True
 
+                # Only process if the button was clicked
+                if st.session_state.run_analysis:
                     if dataset_path is not None:
                         try:
                             # Show loading spinner
                             with st.spinner("Processing data..."):
                                 pivot_df = fetch_close_power_outage_duration(
                                     dataset_path,
-                                    selected_date  # Use the selected date directly
+                                    st.session_state.selected_outage_date  # Use stored date from session state
                                 )
 
                                 # Display the pivot table
@@ -327,6 +335,9 @@ def analysis_dashboard(
                                 )
 
                             st.success("✅ Data processing successfully!")
+                            
+                            # Reset the flag after successful processing
+                            st.session_state.run_analysis = False
 
                         except ValueError as ve:
                             # Handle time format errors specifically
@@ -335,26 +346,39 @@ def analysis_dashboard(
                                 st.info("💡 Expected format: YYYY-MM-DD HH:MM:SS or similar standard datetime format")
                             else:
                                 st.error(f"❌ Data error: {str(ve)}")
+                            st.session_state.run_analysis = False
 
                         except pd.errors.ParserError as pe:
                             st.error("❌ Error: Unable to parse the data file. Please check if the file format is correct.")
                             st.info(f"Details: {str(pe)}")
+                            st.session_state.run_analysis = False
 
                         except FileNotFoundError:
                             st.error("❌ Error: Dataset file not found. Please check the file path.")
+                            st.session_state.run_analysis = False
 
                         except KeyError as ke:
                             st.error(f"❌ Error: Required column not found in dataset: {str(ke)}")
                             st.info("Please ensure all necessary columns exist in your dataset.")
+                            st.session_state.run_analysis = False
 
                         except Exception as e:
                             st.error(f"❌ Error processing file: {str(e)}")
                             st.info("💡 If this is a time format issue, please verify your datetime columns are in standard format (YYYY-MM-DD HH:MM:SS)")
+                            st.session_state.run_analysis = False
 
                     else:
                         st.warning("⚠️ Dataset path is not configured. Please check your configuration.")
-                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        st.session_state.run_analysis = False
 
+                # Show last loaded timestamp only if analysis was run
+                if "last_analysis_time" not in st.session_state:
+                    st.session_state.last_analysis_time = None
+
+                if st.session_state.last_analysis_time:
+                    st.caption(f"Last loaded: {st.session_state.last_analysis_time}")
+
+                    
                 # ========================================
                 # ALL SECTIONS IN 5-COLUMN LAYOUT
                 # ========================================
@@ -384,7 +408,6 @@ def analysis_dashboard(
                             st.dataframe(styled_df, use_container_width=True, height=400)
                             logger.info("Tab 1: Complaint overview displayed successfully")
                             
-                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         else:
                             if status_code:
                                 st.error(f"❌ Failed to fetch data. Status code: {status_code}")
@@ -463,7 +486,10 @@ def analysis_dashboard(
                                 )
 
                                 logger.info("Tab 1: All Agging Complaint Report displayed successfully")
-                                st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+                        else:
+                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        
                                 
                 # ========================================
                 # COLUMN 4: Agging Open Report

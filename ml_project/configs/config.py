@@ -7,7 +7,7 @@ class DatasetNotFoundError(Exception):
     """Custom exception for when dataset is not found"""
     pass
 
-def get_dataset_path(base_path="data/raw"):
+def get_dataset_path(base_path="data/raw_path"):
     """
     Get the dataset file path (Excel or CSV).
     
