@@ -304,7 +304,7 @@ def analysis_dashboard(
                 )
 
                 # Add a button to trigger the analysis
-                if st.button("🔍 Restoration Duration Analysis Reports", key="analyze_button"):
+                if st.button("🔍 Restoration Duration Hour Analysis Reports", key="analyze_button"):
                     # Update session state only when button is clicked
                     st.session_state.selected_outage_date = selected_date
 
@@ -361,7 +361,7 @@ def analysis_dashboard(
 
                 st.divider()
 
-                st.header("All Complaint Reports View")
+                st.header("Loding All Complaint Reports View")
 
                 # Create 5 columns
                 col1, col2, col3, col4, col5 = st.columns(5)
@@ -370,7 +370,7 @@ def analysis_dashboard(
                 # COLUMN 1: All Agging Complaint Report
                 # ========================================
                 with col1:
-                    st.subheader("📊 Report 01")
+                    st.subheader("📊Report 01")
                     # Add a button to trigger data loading
                     if st.button("📥 Load Open Complaints Data OverView", type="primary"):
                         with st.spinner("Loading data..."):
@@ -402,9 +402,9 @@ def analysis_dashboard(
                 # COLUMN 2: Data All View
                 # ========================================
                 with col2:
-                    st.subheader("📊 Report 02")
+                    st.subheader("📊Report 02")
 
-                    if st.button("🔄 Load Data All View Open Close Complaint Report", key="load_data_all_view", type="primary"):
+                    if st.button("🔄 Load Data All Open Close Complaint Report", key="load_data_all_view", type="primary"):
                         with st.spinner("Loading data..."):
                             df_07, error_07, status_code_07 = fetch_open_close_complaint_pivot()
 
@@ -426,7 +426,7 @@ def analysis_dashboard(
                 # COLUMN 3: Generate All Agging Complaints Report
                 # ========================================
                 with col3:
-                    st.subheader("📊 Report 03")
+                    st.subheader("📊Report 03")
 
                     # Validate dataset path exists
                     if not dataset_path:
@@ -439,7 +439,7 @@ def analysis_dashboard(
 
                     else:
                         # Add button to trigger data loading
-                        if st.button("📊 All Department Complaint Type Report", type="primary"):
+                        if st.button("📊 All Department Complaint Type Report View", type="primary"):
                             # Show loading spinner while processing
                             with st.spinner("📊 Loading data..."):
                                 @st.cache_data
@@ -469,9 +469,9 @@ def analysis_dashboard(
                 # COLUMN 4: Agging Open Report
                 # ========================================
                 with col4:
-                    st.subheader("📊 Report 04")
+                    st.subheader("📊Report 04")
 
-                    if st.button("🔄 Load Generate Agging Open Report", key="generate_agging_open_report", type="primary"):
+                    if st.button("🔄 Load Generate Agging Open View Report", key="generate_agging_open_report", type="primary"):
                         with st.spinner("Generating report..."):
                             df_10, error_10, status_code_10 = fetch_agging_open_pivot()
 
@@ -493,7 +493,7 @@ def analysis_dashboard(
                 # COLUMN 5: Open Complaints Reports
                 # ========================================
                 with col5:
-                    st.subheader("📊 Report 05")
+                    st.subheader("📊Report 05")
                     
                     if st.button("🔄 Load Generate Open Complaints Report", key="load_open_complaints", type="primary"):
                         with st.spinner("Loading data..."):
@@ -516,19 +516,12 @@ def analysis_dashboard(
                     else:
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-                # Divider
-                st.divider()
+            # Divider
+            st.divider()
 
-                col1, col2 = st.columns([6, 1])
-
-                with col1:
-                    if st.button("🔄 Data All View", type="primary", use_container_width=True):
-                        st.info("📊 Data All View")
-
-                with col2:
-                    if st.button("🔄 Data Refresh All", key="refresh_all_btn", type="primary", use_container_width=True):
-                        st.cache_data.clear()
-                        st.rerun()
+            if st.button("🔄 Data Refresh All", key="refresh_all_btn", type="primary", use_container_width=True):
+                st.cache_data.clear()
+                st.rerun()
             # ----------------------------------------------
             # TAB 2: DATA TABLE
             # ----------------------------------------------
