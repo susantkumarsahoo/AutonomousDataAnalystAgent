@@ -58,9 +58,6 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
     """
     try:
         with tab2:
-            st.title("Analysis Tab 2")
-            st.write("Tab 2 content goes here.")
-
             # ========================================
             # SECTION 1: MONTH WISE OPEN/CLOSE COMPLAINTS PIVOT
             # ========================================
@@ -160,6 +157,19 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.caption(f"Last loaded: Not generated yet")
             
             st.divider()
+
+
+
+
+
+
+
+
+
+
+
+
+            
 
     except Exception as e:
         error_msg = str(CustomException(e, sys))
