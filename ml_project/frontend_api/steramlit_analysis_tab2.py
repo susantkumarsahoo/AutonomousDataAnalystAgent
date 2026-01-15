@@ -11,20 +11,26 @@ from typing import Optional
 import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
+from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
+from ml_project.frontend_api.streamlit_analysis_helper import*
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
-from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
-from ml_project.frontend_api.streamlit_analysis_tab1 import streamlit_analysis_tab1
+from ml_project.frontend_api.streamlit_cache_data import* 
+
 
 config = read_yaml("ml_project/configs/ml_project_config.yaml")
 dataset = config["data"]["raw_path"]
+
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 
 try:
     dataset_path = get_dataset_path("data/raw_path")
     print(f"Dataset found at: {dataset_path}")
 except DatasetNotFoundError as e:
     print(f"Error: {e}")
+
 
 # Fix Unicode encoding for Windows console
 if sys.platform == "win32":
@@ -39,8 +45,7 @@ logger = get_logger(__name__)
 def analysis_dashboard(
     dashboard_type: str,
     dataset_path: str,
-    uploaded_file: Optional[object] = None,
-) -> None:
+    uploaded_file: Optional[object] = None,) -> None:
     """
     Render the selected dashboard.
 
@@ -62,37 +67,13 @@ def analysis_dashboard(
         # ==================================================
         if "Analysis Dashboard" in dashboard_type:
            
-            df = None
-            try:
-                if uploaded_file:
-                    logger.info("Loading uploaded file")
-                    df = pd.read_excel(uploaded_file)
-                elif dataset_path and dataset_path != "Not available":
-                    logger.info("Loading default dataset | path=%s", dataset_path)
-                    df = pd.read_excel(dataset_path)
-                else:
-                    st.warning("⚠️ No data available. Please upload a file or check the default dataset path.")
-                    logger.warning("No dataset available")
-                    return
-            except Exception as e:
-                st.error(f"❌ Error loading data: {str(e)}")
-                logger.error("Error loading dataset | error=%s", str(e))
-                return
-            
-            if df is None or df.empty:
-                st.warning("⚠️ No data available. Please upload a file or check the default dataset path.")
-                logger.warning("DataFrame is empty or None")
-                return
-
-            logger.info("Dataset loaded successfully | shape=%s", df.shape)
-
             tab1, tab2, tab3, tab4, tab5 = st.tabs(
                 [
                     "📈 Complaint Overview",
-                    "📋 Data Table Reports",
+                    "📋 Data Table",
+                    "📊 Summary",
                     "🔍 Dataset Information",
                     "📊 Visualizations",
-                    "📊 Summary",
                 ]
             )
 
@@ -101,45 +82,31 @@ def analysis_dashboard(
             # ----------------------------------------------
             with tab1:
                 st.success("🛠️ This project is under development.")
-                streamlit_analysis_tab1(tab1, dataset_path, logger)                
+
+            # ----------------------------------------------
+            # TAB 2: DATA TABLE
+            # ----------------------------------------------
             with tab2:
                 st.success("🛠️ This project is under development.")
 
+            # ----------------------------------------------
+            # TAB 3: SUMMARY
+            # ----------------------------------------------
             with tab3:
                 st.success("🛠️ This project is under development.")
 
+            # ----------------------------------------------
+            # TAB 4: DATASET INFORMATION
+            # ----------------------------------------------
             with tab4:
                 st.success("🛠️ This project is under development.")
 
+            # ----------------------------------------------
+            # TAB 5: VISUALIZATIONS
+            # ----------------------------------------------
             with tab5:
                 st.success("🛠️ This project is under development.")
 
-
-        # ==================================================
-        # OTHER DASHBOARDS
-        # ==================================================
-        else:
-            dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
-            st.info(f"🚧 {dashboard_type} is under development. Coming soon!")
-            logger.info("Dashboard under development | type=%s", dashboard_type_clean)
-
-            # Placeholder content
-            with st.expander("📋 Planned Features"):
-                st.markdown(f"""
-                ### {dashboard_type}
-
-                This dashboard will include:
-                - Advanced analytics features
-                - Interactive visualizations
-                - Real-time data processing
-                - Machine learning models
-                - Export capabilities
-
-                **Status:** In Development  
-                **Expected Release:** Q1 2025
-                """)
-
-        logger.info("Dashboard rendering completed successfully")
 
     except Exception as e:
         error_msg = str(CustomException(e, sys))
