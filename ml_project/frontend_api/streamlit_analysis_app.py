@@ -16,6 +16,8 @@ from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 from ml_project.frontend_api.streamlit_analysis_tab1 import streamlit_analysis_tab1
+from ml_project.frontend_api.steramlit_analysis_tab2 import streamlit_analysis_tab2
+
 
 config = read_yaml("ml_project/configs/ml_project_config.yaml")
 dataset = config["data"]["raw_path"]
@@ -101,10 +103,10 @@ def analysis_dashboard(
             # ----------------------------------------------
             with tab1:
                 st.success("🛠️ This project is under development.")
-                streamlit_analysis_tab1(tab1, dataset_path, logger)                
+                #streamlit_analysis_tab1(tab1, dataset_path, logger)                
             with tab2:
                 st.success("🛠️ This project is under development.")
-
+                streamlit_analysis_tab2(tab2, dataset_path, logger)
             with tab3:
                 st.success("🛠️ This project is under development.")
 

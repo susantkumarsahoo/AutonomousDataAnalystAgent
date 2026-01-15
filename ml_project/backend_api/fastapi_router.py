@@ -25,7 +25,9 @@ from ml_project.backend_api.fastapi_analysis_helper import (
     agging_open_pivot_dict,
     agging_open_close_pivot_dict,
     open_close_complaint_report,
-    generate_all_agging_complaint_report )
+    generate_all_agging_complaint_report,
+    #Tab 2 Options
+    generate_month_wise_open_clode_pivot_report)
 
 logger = get_logger(__name__)
 
@@ -399,6 +401,40 @@ async def get_generate_all_agging_complaint_report():
     except Exception as e:
         error_msg = str(CustomException(e, sys))
         logger.error(f"Open report error | error={error_msg}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+@app.get("/month_wise_open_close_pivot_report", tags=["Analytics"])    
+async def get_generate_month_wise_open_close_pivot_report(selected_month: str):
+    """
+    Get month wise open/close complaints pivot report
+    
+    Parameters:
+    -----------
+    selected_month : str
+        Month in format 'YYYY-MM' (e.g., '2024-01')
+    """
+    try:
+        logger.info(f"generate_month_wise_open_close_pivot_report endpoint accessed | month={selected_month}")
+
+        if not os.path.exists(dataset_path):
+            logger.warning(f"Dataset not found | path={dataset_path}")
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Run CPU-intensive task in thread pool
+        response_dict = await run_in_threadpool(
+            generate_month_wise_open_clode_pivot_report, 
+            dataset_path,
+            selected_month
+        )
+
+        logger.info(f"Month wise open/close report generated | month={selected_month} | records={len(response_dict)}")
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Month wise open/close report error | month={selected_month} | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

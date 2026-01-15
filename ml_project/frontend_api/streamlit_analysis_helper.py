@@ -215,3 +215,37 @@ def close_power_outage_duration(dataset_path: str, selected_day: str) -> pd.Data
     final_df = merge_df[final_cols]
     
     return final_df
+
+
+import pandas as pd
+
+def generate_month_wise_open_clode_pivot_report(dataset_path: str,selected_month: str) -> dict:
+    # Load dataset
+    new_df = pd.read_excel(dataset_path)
+
+    # Clean and format columns
+    new_df['DATE'] = pd.to_datetime(new_df['DATE'])
+    df = new_df[new_df['DATE'].dt.to_period('M') == selected_month]
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+    df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
+    df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()
+
+    pivot = pd.pivot_table(
+        df,
+        values='DATE',
+        index=['COMPLAINT TYPE'],          # keep this index
+        columns=['DEPT','CLOSED/OPEN'],
+        aggfunc='count',
+        fill_value=0,
+        margins=True,
+        margins_name='Grand Total',
+        observed=False
+    )
+
+    # Flatten MultiIndex columns into single strings
+    pivot.columns = [f"{dept}_{status}" for dept, status in pivot.columns]
+
+    # Convert pivot table to dictionary format, preserving index
+    pivot_dict = pivot.to_dict()
+
+    return pivot_dict

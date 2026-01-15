@@ -156,3 +156,23 @@ def fetch_close_power_outage_duration(dataset_path, selected_date):
         error_msg = str(e)
         logger.error(f"Error fetching open/close complaint report: {error_msg}")
         return None
+    
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_generate_month_wise_open_close_pivot_report(selected_month: str):
+    """Fetch month wise open/close pivot report data from API - cached"""
+    try:
+        # Pass selected_month as query parameter
+        response = fastapi_api_request_url(f"/month_wise_open_close_pivot_report?selected_month={selected_month}")
+        if response is not None and response.status_code == 200:
+            response_data = response.json()
+            if response_data:
+                return pd.DataFrame(response_data), None, response.status_code
+            else:
+                return None, "No data available", response.status_code
+        else:
+            status = response.status_code if response else None
+            return None, f"API error: {status}", status
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Error fetching month wise open/close pivot report: {error_msg}")
+        return None, error_msg, None

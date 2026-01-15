@@ -37,6 +37,8 @@ try:
 except DatasetNotFoundError as e:
     print(f"Error: {e}")
 
+logger = get_logger(__name__)
+
 
 def streamlit_analysis_tab1(tab1, dataset_path, logger):
     """
