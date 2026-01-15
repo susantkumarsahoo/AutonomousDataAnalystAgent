@@ -17,6 +17,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 from ml_project.utils.helper import read_yaml
+from fastapi import BackgroundTasks
+from fastapi.concurrency import run_in_threadpool
 from ml_project.backend_api.fastapi_analysis_helper import (
     open_complaint_pivot,
     open_close_complaint_pivot,
@@ -27,9 +29,17 @@ from ml_project.backend_api.fastapi_analysis_helper import (
 
 logger = get_logger(__name__)
 
-config = read_yaml("ml_project/config/ml_project_config.yaml")
-dataset_path = config["data"]["raw_path"]
+config = read_yaml("ml_project/configs/ml_project_config.yaml")
+dataset = config["data"]["raw_path"]
 
+
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
+
+try:
+    dataset_path = get_dataset_path("data/raw")
+    print(f"Dataset found at: {dataset_path}")
+except DatasetNotFoundError as e:
+    print(f"Error: {e}")
 # -----------------------------------------------------------------------------
 # FastAPI app
 # -----------------------------------------------------------------------------
@@ -183,7 +193,7 @@ async def shutdown_event():
 # Routes
 # -----------------------------------------------------------------------------
 @app.get("/", tags=["Root"])
-async def read_root():
+def read_root():
     """Root endpoint with API information"""
     try:
         logger.info("Root endpoint accessed")
@@ -206,7 +216,7 @@ async def read_root():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/healthcheck", tags=["Health"])
-async def get_healthcheck():
+def get_healthcheck():
     """Health check endpoint with system status"""
     try:
         logger.info("Healthcheck endpoint accessed")
@@ -223,6 +233,7 @@ async def get_healthcheck():
         logger.error(f"Healthcheck error | error={str(CustomException(e, sys))}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @app.get("/open_complaint_pivot", tags=["Analytics"])
 async def get_open_complaint_pivot():
     """Get open complaints pivot table"""
@@ -233,8 +244,11 @@ async def get_open_complaint_pivot():
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
         
-        # Get pivot table
-        pivot_df = open_complaint_pivot(dataset_path)
+        # Get pivot table - run in thread pool to avoid blocking
+        pivot_df = await run_in_threadpool(
+            open_complaint_pivot,
+            dataset_path
+        )
         
         # Convert to JSON-serializable format
         response_dict = json.loads(pivot_df.to_json(orient="records"))
@@ -249,6 +263,7 @@ async def get_open_complaint_pivot():
         logger.error(f"Open complaint pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @app.get("/open_close_complaint_pivot", tags=["Analytics"])
 async def get_open_close_complaint_pivot():
     """Get open/close complaints pivot table"""
@@ -259,8 +274,11 @@ async def get_open_close_complaint_pivot():
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get pivot data
-        response_dict = open_close_complaint_pivot(dataset_path)
+        # Get pivot data - run in thread pool to avoid blocking
+        response_dict = await run_in_threadpool(
+            open_close_complaint_pivot,
+            dataset_path
+        )
 
         logger.info(f"Open/Close pivot generated | records={len(response_dict)}")
         return JSONResponse(content=response_dict)
@@ -272,6 +290,7 @@ async def get_open_close_complaint_pivot():
         logger.error(f"Open/Close complaint pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @app.get("/agging_open_pivot_dict", tags=["Analytics"])
 async def get_agging_open_pivot_dict():
     """Get aging open complaints pivot table"""
@@ -282,8 +301,11 @@ async def get_agging_open_pivot_dict():
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get pivot data
-        response_dict = agging_open_pivot_dict(dataset_path)
+        # Get pivot data - run in thread pool to avoid blocking
+        response_dict = await run_in_threadpool(
+            agging_open_pivot_dict,
+            dataset_path
+        )
 
         logger.info(f"Aging open pivot generated | records={len(response_dict)}")
         return JSONResponse(content=response_dict)
@@ -295,6 +317,7 @@ async def get_agging_open_pivot_dict():
         logger.error(f"Aging open pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @app.get("/agging_open_close_pivot_dict", tags=["Analytics"])
 async def get_agging_open_close_pivot_dict():
     """Get aging open/close complaints pivot table"""
@@ -305,8 +328,11 @@ async def get_agging_open_close_pivot_dict():
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get pivot data
-        response_dict = agging_open_close_pivot_dict(dataset_path)
+        # Get pivot data - run in thread pool to avoid blocking
+        response_dict = await run_in_threadpool(
+            agging_open_close_pivot_dict,
+            dataset_path
+        )
 
         logger.info(f"Aging open/close pivot generated | records={len(response_dict)}")
         return JSONResponse(content=response_dict)
@@ -319,6 +345,7 @@ async def get_agging_open_close_pivot_dict():
         raise HTTPException(status_code=500, detail="Internal server error")
     
 
+
 @app.get("/open_close_complaint_report", tags=["Analytics"])    
 async def get_open_close_complaint_report():
     """Get open/close complaints report"""
@@ -329,8 +356,11 @@ async def get_open_close_complaint_report():
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get report data
-        response_dict = open_close_complaint_report(dataset_path)
+        # Get report data - run in thread pool to avoid blocking
+        response_dict = await run_in_threadpool(
+            open_close_complaint_report, 
+            dataset_path
+        )
 
         logger.info(f"Open/Close report generated | records={len(response_dict)}")
         return JSONResponse(content=response_dict)
@@ -342,6 +372,9 @@ async def get_open_close_complaint_report():
         logger.error(f"Open/Close report error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
+from fastapi import BackgroundTasks
+from fastapi.concurrency import run_in_threadpool
+
 @app.get("/all_agging_complaint_report", tags=["Analytics"])    
 async def get_generate_all_agging_complaint_report():
     """Get open complaints report"""
@@ -352,8 +385,11 @@ async def get_generate_all_agging_complaint_report():
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get report data
-        response_dict = generate_all_agging_complaint_report(dataset_path)
+        # Run CPU-intensive task in thread pool
+        response_dict = await run_in_threadpool(
+            generate_all_agging_complaint_report, 
+            dataset_path
+        )
 
         logger.info(f"Open report generated | records={len(response_dict)}")
         return JSONResponse(content=response_dict)

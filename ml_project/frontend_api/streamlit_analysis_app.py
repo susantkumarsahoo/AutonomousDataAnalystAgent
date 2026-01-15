@@ -26,8 +26,16 @@ from ml_project.frontend_api.streamlit_cache_data import (
     fetch_all_agging_complaint_report,
     fetch_close_power_outage_duration )
 
-config = read_yaml("ml_project/config/ml_project_config.yaml")
-dataset_path = config["data"]["raw_path"]
+config = read_yaml("ml_project/configs/ml_project_config.yaml")
+dataset = config["data"]["raw_path"]
+
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
+
+try:
+    dataset_path = get_dataset_path("data/raw")
+    print(f"Dataset found at: {dataset_path}")
+except DatasetNotFoundError as e:
+    print(f"Error: {e}")
 
 API_URL = "http://localhost:8000"
 FASTAPI_URL = "http://localhost:8000"
@@ -109,9 +117,6 @@ def analysis_dashboard(
             with tab1:
                 st.success("🛠️ This project is under development.")
 
-                # ========================================
-                # SECTION 1: OPEN COMPLAINT PIVOT
-                # ========================================
                 with st.spinner("Loading data..."):
                     df_pivot, error, status_code = fetch_open_complaint_pivot()
 
@@ -133,6 +138,8 @@ def analysis_dashboard(
                         logger.error(f"Tab 1: Error - {error}")
 
                 st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                
+                
                 st.divider()
 
                 # ========================================
@@ -266,9 +273,6 @@ def analysis_dashboard(
                     else:
                         complaint_df = complaint_data
 
-                        # Display success message with record count
-                        st.success(f"✅ Successfully loaded {len(complaint_df):,} records.")
-
                         # Display dataframe
                         st.dataframe(
                             complaint_df,
@@ -276,33 +280,10 @@ def analysis_dashboard(
                             height=400
                         )
 
-                        # Save DataFrame to BytesIO buffer
-                        buffer = io.BytesIO()
-
-                        # Create a copy and flatten MultiIndex columns if they exist
-                        df_to_save = complaint_df.copy()
-
-                        # Check if columns are MultiIndex and flatten them
-                        if isinstance(df_to_save.columns, pd.MultiIndex):
-                            # Flatten MultiIndex columns by joining levels with underscore
-                            df_to_save.columns = [
-                                '_'.join(map(str, col)).strip('_') for col in df_to_save.columns.values
-                            ]
-
-                        # Now save to Excel
-                        df_to_save.to_excel(buffer, index=False, engine='openpyxl')
-                        buffer.seek(0)
-
-                        # Download button
-                        st.download_button(
-                            label="📥 Download Data as Excel",
-                            data=buffer,
-                            file_name="complaint_report.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-
                         logger.info("Tab 1: All Agging Complaint Report displayed successfully")
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        
+                        
                         st.divider()
 
                 # ========================================
@@ -311,23 +292,29 @@ def analysis_dashboard(
 
                 st.header("X-Dashboard Shift wise Power Outage Duration Hour Analysis")
 
-                # Date picker with key to prevent auto-rerun
+                # Initialize session state for selected date if it doesn't exist
+                if "selected_outage_date" not in st.session_state:
+                    st.session_state.selected_outage_date = datetime.today()
+
+                # Date picker (just stores the date, no processing yet)
                 selected_date = st.date_input(
                     "Select Date",
-                    value=datetime.today(),
-                    help="Choose a date to analyze power outage durations",
-                    key="outage_date_picker"
+                    value=st.session_state.selected_outage_date,
+                    help="Choose a date to analyze power outage durations"
                 )
 
                 # Add a button to trigger the analysis
                 if st.button("🔍 Restoration Duration Analysis Reports", key="analyze_button"):
+                    # Update session state only when button is clicked
+                    st.session_state.selected_outage_date = selected_date
+
                     if dataset_path is not None:
                         try:
                             # Show loading spinner
                             with st.spinner("Processing data..."):
                                 pivot_df = fetch_close_power_outage_duration(
                                     dataset_path,
-                                    selected_date
+                                    selected_date  # Use the selected date directly
                                 )
 
                                 # Display the pivot table
@@ -335,12 +322,11 @@ def analysis_dashboard(
                                 st.dataframe(
                                     pivot_df,
                                     use_container_width=True,
-                                    height=400
+                                    height=400,
+                                    hide_index=False
                                 )
-                                
-                                st.info("Summary statistics not available")
 
-                            st.success("✅ Data processing completed successfully!")
+                            st.success("✅ Data processing successfully!")
 
                         except ValueError as ve:
                             # Handle time format errors specifically
@@ -349,18 +335,18 @@ def analysis_dashboard(
                                 st.info("💡 Expected format: YYYY-MM-DD HH:MM:SS or similar standard datetime format")
                             else:
                                 st.error(f"❌ Data error: {str(ve)}")
-                        
+
                         except pd.errors.ParserError as pe:
                             st.error("❌ Error: Unable to parse the data file. Please check if the file format is correct.")
                             st.info(f"Details: {str(pe)}")
-                        
+
                         except FileNotFoundError:
                             st.error("❌ Error: Dataset file not found. Please check the file path.")
-                        
+
                         except KeyError as ke:
                             st.error(f"❌ Error: Required column not found in dataset: {str(ke)}")
                             st.info("Please ensure all necessary columns exist in your dataset.")
-                        
+
                         except Exception as e:
                             st.error(f"❌ Error processing file: {str(e)}")
                             st.info("💡 If this is a time format issue, please verify your datetime columns are in standard format (YYYY-MM-DD HH:MM:SS)")
@@ -368,9 +354,6 @@ def analysis_dashboard(
                     else:
                         st.warning("⚠️ Dataset path is not configured. Please check your configuration.")
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-
-
 
                 # ========================================
                 # ALL SECTIONS IN 5-COLUMN LAYOUT
@@ -384,37 +367,44 @@ def analysis_dashboard(
                 col1, col2, col3, col4, col5 = st.columns(5)
 
                 # ========================================
-                # COLUMN 1: SECTION 8 - All Agging Complaint Report
+                # COLUMN 1: All Agging Complaint Report
                 # ========================================
                 with col1:
-                    st.subheader("📊Report 01")
-
-                    if st.button("🔄 Load All Agging Complaint Report", key="load_all_agging_report"):
+                    st.subheader("📊 Report 01")
+                    # Add a button to trigger data loading
+                    if st.button("📥 Load Open Complaints Data OverView", type="primary"):
                         with st.spinner("Loading data..."):
-                            df_pivot_06, error_06, status_code_06 = fetch_all_agging_complaint_report()
+                            df_pivot, error, status_code = fetch_open_complaint_pivot()
 
-                        if error_06 is None and df_pivot_06 is not None:                    
-                            styled_df = style_grand_total_dataframe(df_pivot_06)
+                        if error is None and df_pivot is not None:
+                            st.subheader("📊 Open Complaints Reports")
+                            st.caption("Grand Total row is highlighted in red for easy identification")
+                            
+                            styled_df = style_grand_total_dataframe(df_pivot)
                             st.dataframe(styled_df, use_container_width=True, height=400)
-                            logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                            logger.info("Tab 1: Complaint overview displayed successfully")
+                            
                             st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                         else:
-                            if status_code_06:
-                                st.error(f"❌ Failed to fetch data. Status code: {status_code_06}")
-                                logger.error(f"Tab 1: API request failed with status code {status_code_06}")
+                            if status_code:
+                                st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                                st.info("The API service may be experiencing issues. Please try again in a few moments.")
+                                logger.error(f"Tab 1: API request failed with status code {status_code}")
                             else:
-                                st.error(f"❌ Error: {error_06}")
-                                logger.error(f"Tab 1: Error - {error_06}")
+                                st.error(f"❌ Error: {error}")
+                                st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
+                                logger.error(f"Tab 1: Error - {error}")
                     else:
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
+                        
+                        
                 # ========================================
-                # COLUMN 2: SECTION 9 - Data All View
+                # COLUMN 2: Data All View
                 # ========================================
                 with col2:
                     st.subheader("📊 Report 02")
 
-                    if st.button("🔄 Load Data All View Open Close Complaint Report", key="load_data_all_view"):
+                    if st.button("🔄 Load Data All View Open Close Complaint Report", key="load_data_all_view", type="primary"):
                         with st.spinner("Loading data..."):
                             df_07, error_07, status_code_07 = fetch_open_close_complaint_pivot()
 
@@ -433,36 +423,55 @@ def analysis_dashboard(
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
                 # ========================================
-                # COLUMN 3: SECTION 10 - Generate All Agging Complaints Report
+                # COLUMN 3: Generate All Agging Complaints Report
                 # ========================================
                 with col3:
                     st.subheader("📊 Report 03")
 
-                    if st.button("🔄 Load Generate All Agging Complaint Report", key="generate_all_agging_report"):
-                        with st.spinner("Generating report..."):
-                            df_09, error_09, status_code_09 = generate_all_agging_complaint_report()
+                    # Validate dataset path exists
+                    if not dataset_path:
+                        st.error("❌ Dataset path is not provided.")
+                        st.info("ℹ️ Please configure the dataset path in the settings.")
 
-                        if error_09 is None and df_09 is not None:                    
-                            st.dataframe(df_09, use_container_width=True, height=400)
-                            logger.info("Tab 1: All Agging Complaint Report displayed successfully")
-                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                        else:
-                            if status_code_09:
-                                st.error(f"❌ Failed to fetch data. Status code: {status_code_09}")
-                                logger.error(f"Tab 1: API request failed with status code {status_code_09}")
-                            else:
-                                st.error(f"❌ Error: {error_09}")
-                                logger.error(f"Tab 1: Error - {error_09}")
+                    elif not os.path.exists(dataset_path):
+                        st.error(f"❌ Dataset not found at: `{dataset_path}`")
+                        st.info("ℹ️ Please verify the file path and try again.")
+
                     else:
-                        st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        # Add button to trigger data loading
+                        if st.button("📊 All Department Complaint Type Report", type="primary"):
+                            # Show loading spinner while processing
+                            with st.spinner("📊 Loading data..."):
+                                @st.cache_data
+                                def load_complaint_data(path):
+                                    return generate_all_agging_complaint_report(path)
+                                
+                                complaint_data = load_complaint_data(dataset_path)
 
+                            # Check if data is None or empty (handle both list and DataFrame)
+                            if complaint_data is None:
+                                st.warning("⚠️ No data available to display.")
+                                st.info("ℹ️ The dataset may be empty or contain no valid records.")
+                            else:
+                                complaint_df = complaint_data
+
+                                # Display dataframe
+                                st.dataframe(
+                                    complaint_df,
+                                    use_container_width=True,
+                                    height=400
+                                )
+
+                                logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                                st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                                
                 # ========================================
-                # COLUMN 4: SECTION 11 - Agging Open Report
+                # COLUMN 4: Agging Open Report
                 # ========================================
                 with col4:
                     st.subheader("📊 Report 04")
 
-                    if st.button("🔄 Load Generate Agging Open Report", key="generate_agging_open_report"):
+                    if st.button("🔄 Load Generate Agging Open Report", key="generate_agging_open_report", type="primary"):
                         with st.spinner("Generating report..."):
                             df_10, error_10, status_code_10 = fetch_agging_open_pivot()
 
@@ -481,12 +490,12 @@ def analysis_dashboard(
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
                 # ========================================
-                # COLUMN 5: SECTION 12 - Open Complaints Reports
+                # COLUMN 5: Open Complaints Reports
                 # ========================================
                 with col5:
                     st.subheader("📊 Report 05")
                     
-                    if st.button("🔄 Load Open Complaints Report", key="load_open_complaints"):
+                    if st.button("🔄 Load Generate Open Complaints Report", key="load_open_complaints", type="primary"):
                         with st.spinner("Loading data..."):
                             df_pivot, error, status_code = fetch_open_complaint_pivot()
 
@@ -507,24 +516,19 @@ def analysis_dashboard(
                     else:
                         st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-
-
-
-                
-                    # Divider
+                # Divider
                 st.divider()
 
                 col1, col2 = st.columns([6, 1])
 
                 with col1:
-                    if st.button("🔄 Data All View"):
+                    if st.button("🔄 Data All View", type="primary", use_container_width=True):
                         st.info("📊 Data All View")
 
                 with col2:
-                    if st.button("🔄 Refresh All", key="refresh_all_btn"):
+                    if st.button("🔄 Data Refresh All", key="refresh_all_btn", type="primary", use_container_width=True):
                         st.cache_data.clear()
-                        st.experimental_rerun()
-
+                        st.rerun()
             # ----------------------------------------------
             # TAB 2: DATA TABLE
             # ----------------------------------------------

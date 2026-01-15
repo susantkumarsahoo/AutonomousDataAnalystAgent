@@ -5,10 +5,15 @@ import numpy as np
 import streamlit as st
 
 
-config = read_yaml("ml_project/config/ml_project_config.yaml")
-dataset_path = config["data"]["raw_path"]
+config = read_yaml("ml_project/configs/ml_project_config.yaml")
+dataset = config["data"]["raw_path"]
 
-
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
+try:
+    dataset_path = get_dataset_path("data/raw")
+    print(f"Dataset found: {dataset_path}")
+except DatasetNotFoundError as e:
+    print(f"Error: {e}")
 
 def style_dataframe_headers(df):
     """Apply styling to highlight column headers (top heading) for any dataframe"""
@@ -94,8 +99,7 @@ import pandas as pd
 from datetime import datetime, time
 
 
-def close_power_outage_duration(dataset_path, selected_day):
-    # Read dataset
+def close_power_outage_duration(dataset_path: str, selected_day: str) -> pd.DataFrame:
     main_df = pd.read_excel(dataset_path)
     df = main_df.copy()
     
@@ -127,39 +131,39 @@ def close_power_outage_duration(dataset_path, selected_day):
         return pd.to_datetime(t)
     
     # Apply conversion first
-    power_outage_data.loc[:, 'COMPLAINT_RECEIVED_DT'] = power_outage_data['COMPLAINT RECEIVED TIME'].apply(to_datetime)
-    power_outage_data.loc[:, 'FINAL_RESPONSE_DT'] = power_outage_data['FINAL RESPONSE TIME'].apply(to_datetime)
+    power_outage_data['COMPLAINT_RECEIVED_DT'] = power_outage_data['COMPLAINT RECEIVED TIME'].apply(to_datetime)
+    power_outage_data['FINAL_RESPONSE_DT'] = power_outage_data['FINAL RESPONSE TIME'].apply(to_datetime)
     
     # Fill missing FINAL RESPONSE TIME with current timestamp AFTER conversion
-    power_outage_data.loc[:, 'FINAL_RESPONSE_DT'] = power_outage_data['FINAL_RESPONSE_DT'].fillna(pd.Timestamp.now())
+    power_outage_data['FINAL_RESPONSE_DT'] = power_outage_data['FINAL_RESPONSE_DT'].fillna(pd.Timestamp.now())
     
     # Calculate difference in hours
-    power_outage_data.loc[:, 'DURATION_HOURS'] = (
+    power_outage_data['DURATION_HOURS'] = (
         power_outage_data['FINAL_RESPONSE_DT'] - power_outage_data['COMPLAINT_RECEIVED_DT']
     ).dt.total_seconds() / 3600
     
     # Round to nearest whole hour
-    power_outage_data.loc[:, 'DURATION_HOURS_ROUNDED'] = power_outage_data['DURATION_HOURS'].round()
+    power_outage_data['DURATION_HOURS_ROUNDED'] = power_outage_data['DURATION_HOURS'].round()
     
     # Integer hours (floor)
-    power_outage_data.loc[:, 'DURATION_HOURS_INT'] = power_outage_data['DURATION_HOURS'].fillna(0).astype(int)
+    power_outage_data['DURATION_HOURS_INT'] = power_outage_data['DURATION_HOURS'].fillna(0).astype(int)
     
     # Select relevant columns
     close_open_hour = power_outage_data[['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY', 'CLOSED/OPEN', 'DURATION_HOURS_INT']].copy()
     
-    # Define classification function - FIXED logic
+    # Define classification function
     def classify_duration(x):
-        if x < 2:  # Fixed: 0-1 hours go here
+        if x < 2:
             return "<2"
-        elif 2 <= x < 4:  # Fixed: 2-3 hours go here
+        elif 2 <= x < 4:
             return "2<4"
-        elif 4 <= x < 8:  # Fixed: 4-7 hours go here
+        elif 4 <= x < 8:
             return "4<8"
-        else:  # x >= 8
+        else:
             return ">8"
 
     # Apply classification
-    close_open_hour.loc[:, "DURATION_RANGE"] = close_open_hour["DURATION_HOURS_INT"].apply(classify_duration)
+    close_open_hour["DURATION_RANGE"] = close_open_hour["DURATION_HOURS_INT"].apply(classify_duration)
 
     # Pivot table
     pivot = pd.pivot_table(
@@ -170,7 +174,7 @@ def close_power_outage_duration(dataset_path, selected_day):
         aggfunc='count',
         fill_value=0,
         margins=True,
-        margins_name='Grand Total',   # ✅ added this line
+        margins_name='Grand Total',
         observed=False
     )
 
@@ -178,13 +182,17 @@ def close_power_outage_duration(dataset_path, selected_day):
     pivot_df = pivot.reset_index()
     pivot_df.columns = ['_'.join([str(c) for c in col if c]) for col in pivot_df.columns.values]
 
+    # Fix: Use the correct column name after pivot (it keeps the space)
     pivot_df_siftA = pivot_df[pivot_df['SHIFT DUTY'] == 'A']
     pivot_df_siftB = pivot_df[pivot_df['SHIFT DUTY'] == 'B']
     pivot_df_siftC = pivot_df[pivot_df['SHIFT DUTY'] == 'C']
 
     # Concatenate properly
     merge_df = pd.concat([pivot_df_siftA, pivot_df_siftB, pivot_df_siftC], axis=0)
-    merge_df["Total Complaint Count (A+B+C)"] = merge_df[['<2','2<4', '4<8', '>8']].sum(axis=1)
+    
+    # Sum duration range columns correctly
+    duration_cols = [col for col in merge_df.columns if any(dur in col for dur in ['<2_', '2<4_', '4<8_', '>8_'])]
+    merge_df["Total Complaint Count (A+B+C)"] = merge_df[duration_cols].sum(axis=1)
     
     # Separate numeric and categorical columns
     numeric_cols = merge_df.select_dtypes(include='number').columns
@@ -199,10 +207,11 @@ def close_power_outage_duration(dataset_path, selected_day):
 
     # Append totals row
     merge_df.loc['Grand Total'] = totals
-    final_df = merge_df[['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY',
-                     'Total Complaint Count (A+B+C)', 
-                     '<2', '2<4', '4<8', '>8', 
-                     'Grand Total']]
-
+    
+    # Select final columns
+    final_cols = ['DIVISION', 'SUB-DIVISION', 'SHIFT DUTY', 'Total Complaint Count (A+B+C)']
+    final_cols.extend([col for col in merge_df.columns if 'Grand Total' in col or col in duration_cols])
+    
+    final_df = merge_df[final_cols]
     
     return final_df

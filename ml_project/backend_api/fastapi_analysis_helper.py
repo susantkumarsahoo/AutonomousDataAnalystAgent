@@ -54,7 +54,7 @@ def open_complaint_pivot(dataset_path: str) -> pd.DataFrame:
 
 import pandas as pd
 
-def open_close_complaint_pivot(dataset_path: str) -> pd.DataFrame:
+def open_close_complaint_pivot(dataset_path: str) -> dict:
     """
     Reads an Excel dataset and returns a pivot table of complaints
     grouped by COMPLAINT TYPE, Department, and Open/Closed status,

@@ -11,10 +11,16 @@ from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_re
 from ml_project.utils.helper import read_yaml
 from ml_project.frontend_api.streamlit_analysis_helper import close_power_outage_duration
 
-config = read_yaml("ml_project/config/ml_project_config.yaml")
-dataset_path = config["data"]["raw_path"]
+config = read_yaml("ml_project/configs/ml_project_config.yaml")
+dataset = config["data"]["raw_path"]
 
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 
+try:
+    dataset_path = get_dataset_path("data/raw")
+    print(f"Dataset found at: {dataset_path}")
+except DatasetNotFoundError as e:
+    print(f"Error: {e}")
 
 logger = get_logger(__name__)
 
