@@ -205,7 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-
-data/raw_path
+x_data.xlsx
 
 
