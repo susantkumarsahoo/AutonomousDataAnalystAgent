@@ -113,7 +113,7 @@ try:
         )
 
         # Define save directory
-        SAVE_DIR = "data/raw"
+        SAVE_DIR = "data/raw_path"
 
         # Create directory if it doesn't exist
         os.makedirs(SAVE_DIR, exist_ok=True)

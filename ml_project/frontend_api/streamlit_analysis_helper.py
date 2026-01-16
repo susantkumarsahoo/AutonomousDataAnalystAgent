@@ -249,3 +249,61 @@ def generate_month_wise_open_clode_pivot_report(dataset_path: str,selected_month
     pivot_dict = pivot.to_dict()
 
     return pivot_dict
+
+
+import pandas as pd
+
+import pandas as pd
+
+def generate_complaint_report(dataset_path: str, selected_month: str) -> pd.Series:
+    """
+    Reads an Excel file from the given dataset path and 
+    returns a report of complaint type counts.
+
+    Parameters:
+    dataset_path (str): Path to the Excel dataset file.
+
+    Returns:
+    pd.Series: Complaint type counts.
+    """
+    df = pd.read_excel(dataset_path)
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
+    complainttype_df = df['COMPLAINT TYPE'].value_counts()
+    return complainttype_df
+
+
+def generate_date_report(dataset_path: str, selected_month: str) -> pd.Series:
+    """
+    Reads an Excel file from the given dataset path and 
+    returns a report of date counts.
+
+    Parameters:
+    dataset_path (str): Path to the Excel dataset file.
+
+    Returns:
+    pd.Series: Date counts.
+    """
+    df = pd.read_excel(dataset_path)
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
+    date_df = df['DATE'].value_counts()
+    return date_df
+
+
+def generate_shift_duty_report(dataset_path: str, selected_month: str) -> pd.Series:
+    """
+    Reads an Excel file from the given dataset path and 
+    returns a report of shift duty counts.
+
+    Parameters:
+    dataset_path (str): Path to the Excel dataset file.
+
+    Returns:
+    pd.Series: Shift duty counts.
+    """
+    df = pd.read_excel(dataset_path)
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
+    shift_duty_df = df['SHIFT DUTY'].value_counts()
+    return shift_duty_df
