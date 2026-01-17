@@ -38,10 +38,8 @@ if sys.platform == "win32":
 
 logger = get_logger(__name__)
 
-def analysis_dashboard(
-    dashboard_type: str,
-    dataset_path: str,
-    uploaded_file: Optional[object] = None,
+def analysis_dashboard(dashboard_type: str,dataset_path: Optional[str] = None,
+                       uploaded_file: Optional[object] = None,
 ) -> None:
     """
     Render the selected dashboard.
@@ -64,29 +62,6 @@ def analysis_dashboard(
         # ==================================================
         if "Analysis Dashboard" in dashboard_type:
            
-            df = None
-            try:
-                if uploaded_file:
-                    logger.info("Loading uploaded file")
-                    df = pd.read_excel(uploaded_file)
-                elif dataset_path and dataset_path != "Not available":
-                    logger.info("Loading default dataset | path=%s", dataset_path)
-                    df = pd.read_excel(dataset_path)
-                else:
-                    st.warning("⚠️ No data available. Please upload a file or check the default dataset path.")
-                    logger.warning("No dataset available")
-                    return
-            except Exception as e:
-                st.error(f"❌ Error loading data: {str(e)}")
-                logger.error("Error loading dataset | error=%s", str(e))
-                return
-            
-            if df is None or df.empty:
-                st.warning("⚠️ No data available. Please upload a file or check the default dataset path.")
-                logger.warning("DataFrame is empty or None")
-                return
-
-            logger.info("Dataset loaded successfully | shape=%s", df.shape)
 
             tab1, tab2, tab3, tab4, tab5 = st.tabs(
                 [

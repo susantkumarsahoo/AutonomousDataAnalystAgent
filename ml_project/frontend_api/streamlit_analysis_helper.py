@@ -269,7 +269,7 @@ def generate_complaint_report(dataset_path: str, selected_month: str) -> pd.Seri
     df = pd.read_excel(dataset_path)
     df['DATE'] = pd.to_datetime(df['DATE'])
     month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
-    complainttype_df = df['COMPLAINT TYPE'].value_counts()
+    complainttype_df = month_fd['COMPLAINT TYPE'].value_counts()
     return complainttype_df
 
 
@@ -287,7 +287,7 @@ def generate_date_report(dataset_path: str, selected_month: str) -> pd.Series:
     df = pd.read_excel(dataset_path)
     df['DATE'] = pd.to_datetime(df['DATE'])
     month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
-    date_df = df['DATE'].value_counts()
+    date_df = month_fd['DATE'].value_counts()
     return date_df
 
 
@@ -305,5 +305,5 @@ def generate_shift_duty_report(dataset_path: str, selected_month: str) -> pd.Ser
     df = pd.read_excel(dataset_path)
     df['DATE'] = pd.to_datetime(df['DATE'])
     month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
-    shift_duty_df = df['SHIFT DUTY'].value_counts()
+    shift_duty_df = month_fd['SHIFT DUTY'].value_counts()
     return shift_duty_df

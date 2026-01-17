@@ -37,11 +37,14 @@ dataset = config["data"]["raw_path"]
 
 from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 
+# FIXED: Handle missing dataset gracefully
 try:
     dataset_path = get_dataset_path("data/raw_path")
     print(f"Dataset found at: {dataset_path}")
 except DatasetNotFoundError as e:
+    dataset_path = None  # ADDED THIS LINE
     print(f"Error: {e}")
+    
 # -----------------------------------------------------------------------------
 # FastAPI app
 # -----------------------------------------------------------------------------
@@ -176,12 +179,14 @@ async def startup_event():
         logger.info("FastAPI Application Starting")
         logger.info(f"API Title: {app.title}")
         logger.info(f"API Version: {app.version}")
-        logger.info(f"Dataset Path: {dataset_path}")
-        logger.info(f"Dataset Exists: {os.path.exists(dataset_path)}")
+        # FIXED: Handle None dataset_path
+        logger.info(f"Dataset Path: {dataset_path if dataset_path else 'Not available - waiting for upload'}")
+        logger.info(f"Dataset Exists: {os.path.exists(dataset_path) if dataset_path else False}")
         logger.info("=" * 60)
     except Exception as e:
         logger.error(f"Startup error | error={str(CustomException(e, sys))}")
-        raise
+        # CHANGED: Don't raise - let app start anyway
+        logger.warning("Application starting without dataset")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -222,19 +227,25 @@ def get_healthcheck():
     """Health check endpoint with system status"""
     try:
         logger.info("Healthcheck endpoint accessed")
-        dataset_exists = os.path.exists(dataset_path)
+        # FIXED: Re-check for dataset on each healthcheck
+        current_dataset_path = dataset_path
+        try:
+            current_dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            current_dataset_path = None
+        
+        dataset_exists = os.path.exists(current_dataset_path) if current_dataset_path else False
 
         return {
             "status": "healthy" if dataset_exists else "degraded",
             "timestamp": datetime.datetime.now().isoformat(),
             "dataset_available": dataset_exists,
-            "dataset_path": dataset_path,
+            "dataset_path": current_dataset_path if current_dataset_path else "Not available",
             "api_version": "1.0.0"
         }
     except Exception as e:
         logger.error(f"Healthcheck error | error={str(CustomException(e, sys))}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
 
 @app.get("/open_complaint_pivot", tags=["Analytics"])
 async def get_open_complaint_pivot():
@@ -416,6 +427,12 @@ async def get_generate_month_wise_open_close_pivot_report(selected_month: str):
     try:
         logger.info(f"generate_month_wise_open_close_pivot_report endpoint accessed | month={selected_month}")
 
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
@@ -436,8 +453,6 @@ async def get_generate_month_wise_open_close_pivot_report(selected_month: str):
         error_msg = str(CustomException(e, sys))
         logger.error(f"Month wise open/close report error | month={selected_month} | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-
 
 
 # -----------------------------------------------------------------------------
