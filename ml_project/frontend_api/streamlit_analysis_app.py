@@ -78,7 +78,7 @@ def analysis_dashboard(dashboard_type: str,dataset_path: Optional[str] = None,
             # ----------------------------------------------
             with tab1:
                 st.success("🛠️ This project is under development.")
-                #streamlit_analysis_tab1(tab1, dataset_path, logger)                
+                streamlit_analysis_tab1(tab1, dataset_path, logger)                
             with tab2:
                 st.success("🛠️ This project is under development.")
                 streamlit_analysis_tab2(tab2, dataset_path, logger)

@@ -57,27 +57,33 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         # ========================================
         # SECTION 1: OPEN COMPLAINTS PIVOT
         # ========================================
-        with st.spinner("Loading data..."):
-            df_pivot, error, status_code = fetch_open_complaint_pivot()
+        
+        # Add button to fetch data
+        if st.button("📥 Load Open Complaints Data", key="load_complaints_btn",type="primary" ):
+            with st.spinner("Loading data..."):
+                df_pivot, error, status_code = fetch_open_complaint_pivot()
 
-        if error is None and df_pivot is not None:
-            st.subheader("📊 Open Complaints Reports")
-            st.caption("Grand Total row is highlighted in red for easy identification")
-            
-            styled_df = style_grand_total_dataframe(df_pivot)
-            st.dataframe(styled_df, use_container_width=True, height=400)
-            logger.info("Tab 1: Complaint overview displayed successfully")
-        else:
-            if status_code:
-                st.error(f"❌ Failed to fetch data. Status code: {status_code}")
-                st.info("The API service may be experiencing issues. Please try again in a few moments.")
-                logger.error(f"Tab 1: API request failed with status code {status_code}")
+            if error is None and df_pivot is not None:
+                st.subheader("📊 Open Complaints Reports")
+                st.caption("Grand Total row is highlighted in red for easy identification")
+                
+                styled_df = style_grand_total_dataframe(df_pivot)
+                st.dataframe(styled_df, use_container_width=True, height=400)
+                logger.info("Tab 1: Complaint overview displayed successfully")
+                
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
             else:
-                st.error(f"❌ Error: {error}")
-                st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
-                logger.error(f"Tab 1: Error - {error}")
-
-        st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                if status_code:
+                    st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                    st.info("The API service may be experiencing issues. Please try again in a few moments.")
+                    logger.error(f"Tab 1: API request failed with status code {status_code}")
+                else:
+                    st.error(f"❌ Error: {error}")
+                    st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
+                    logger.error(f"Tab 1: Error - {error}")
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            st.info("👆 Click the button above to load the open complaints data")
         
         
         st.divider()
@@ -88,22 +94,28 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         st.subheader("📊 Open/Close Complaints Reports")
         st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-        with st.spinner("Loading data..."):
-            df_pivot_02, error_02, status_code_02 = fetch_open_close_complaint_pivot()
+        # Add button to fetch data
+        if st.button("📥 Load Open/Close Complaints Data", key="load_open_close_complaints_btn", type="primary"):
+            with st.spinner("Loading data..."):
+                df_pivot_02, error_02, status_code_02 = fetch_open_close_complaint_pivot()
 
-        if error_02 is None and df_pivot_02 is not None:
-            styled_df = style_grand_total_dataframe(df_pivot_02)
-            st.dataframe(styled_df, use_container_width=True, height=400)
-            logger.info("Tab 1: Open Close Complaints Pivot Table displayed successfully")
-        else:
-            if status_code_02:
-                st.error(f"❌ Failed to fetch data. Status code: {status_code_02}")
-                logger.error(f"Tab 1: API request failed with status code {status_code_02}")
+            if error_02 is None and df_pivot_02 is not None:
+                styled_df = style_grand_total_dataframe(df_pivot_02)
+                st.dataframe(styled_df, use_container_width=True, height=400)
+                logger.info("Tab 1: Open Close Complaints Pivot Table displayed successfully")
+                
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
             else:
-                st.error(f"❌ Error: {error_02}")
-                logger.error(f"Tab 1: Error - {error_02}")
-
-        st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                if status_code_02:
+                    st.error(f"❌ Failed to fetch data. Status code: {status_code_02}")
+                    logger.error(f"Tab 1: API request failed with status code {status_code_02}")
+                else:
+                    st.error(f"❌ Error: {error_02}")
+                    logger.error(f"Tab 1: Error - {error_02}")
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            st.info("👆 Click the button above to load the open/close complaints data")
+        
         st.divider()
         
         # ========================================
@@ -112,22 +124,28 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         st.header("📊 Agging Open Complaints Reports")
         st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-        with st.spinner("Loading data..."):
-            df_pivot_03, error_03, status_code_03 = fetch_agging_open_pivot()
+        # Add button to fetch data
+        if st.button("📥 Load Agging Open Complaints Data", key="load_agging_open_complaints_btn",type="primary"):
+            with st.spinner("Loading data..."):
+                df_pivot_03, error_03, status_code_03 = fetch_agging_open_pivot()
 
-        if error_03 is None and df_pivot_03 is not None:
-            styled_df = style_grand_total_dataframe(df_pivot_03)
-            st.dataframe(styled_df, use_container_width=True, height=400)
-            logger.info("Tab 1: Agging Open Complaints Pivot Table displayed successfully")
-        else:
-            if status_code_03:
-                st.error(f"❌ Failed to fetch data. Status code: {status_code_03}")
-                logger.error(f"Tab 1: API request failed with status code {status_code_03}")
+            if error_03 is None and df_pivot_03 is not None:
+                styled_df = style_grand_total_dataframe(df_pivot_03)
+                st.dataframe(styled_df, use_container_width=True, height=400)
+                logger.info("Tab 1: Agging Open Complaints Pivot Table displayed successfully")
+                
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
             else:
-                st.error(f"❌ Error: {error_03}")
-                logger.error(f"Tab 1: Error - {error_03}")
-
-        st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                if status_code_03:
+                    st.error(f"❌ Failed to fetch data. Status code: {status_code_03}")
+                    logger.error(f"Tab 1: API request failed with status code {status_code_03}")
+                else:
+                    st.error(f"❌ Error: {error_03}")
+                    logger.error(f"Tab 1: Error - {error_03}")
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            st.info("👆 Click the button above to load the agging open complaints data")
+        
         st.divider()
         
         # ========================================
@@ -136,22 +154,28 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         st.header("📊 Agging Day Difference All Complaints Reports")
         st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-        with st.spinner("Loading data..."):
-            df_pivot_04, error_04, status_code_04 = fetch_agging_open_close_pivot()
+        # Add button to fetch data
+        if st.button("📥 Load Agging Day Difference Data", key="load_agging_day_diff_complaints_btn",type="primary"):
+            with st.spinner("Loading data..."):
+                df_pivot_04, error_04, status_code_04 = fetch_agging_open_close_pivot()
 
-        if error_04 is None and df_pivot_04 is not None:
-            styled_df = style_grand_total_dataframe(df_pivot_04)
-            st.dataframe(styled_df, use_container_width=True, height=400)
-            logger.info("Tab 1: Agging Open/Close Complaints Pivot Table displayed successfully")
-        else:
-            if status_code_04:
-                st.error(f"❌ Failed to fetch data. Status code: {status_code_04}")
-                logger.error(f"Tab 1: API request failed with status code {status_code_04}")
+            if error_04 is None and df_pivot_04 is not None:
+                styled_df = style_grand_total_dataframe(df_pivot_04)
+                st.dataframe(styled_df, use_container_width=True, height=400)
+                logger.info("Tab 1: Agging Open/Close Complaints Pivot Table displayed successfully")
+                
+                st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
             else:
-                st.error(f"❌ Error: {error_04}")
-                logger.error(f"Tab 1: Error - {error_04}")
-
-        st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                if status_code_04:
+                    st.error(f"❌ Failed to fetch data. Status code: {status_code_04}")
+                    logger.error(f"Tab 1: API request failed with status code {status_code_04}")
+                else:
+                    st.error(f"❌ Error: {error_04}")
+                    logger.error(f"Tab 1: Error - {error_04}")
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            st.info("👆 Click the button above to load the agging day difference data")
+        
         st.divider()
 
         # ========================================
@@ -160,26 +184,28 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         st.header("📊 All Complaint Report")
         st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-        with st.spinner("Loading data..."):
-            df_pivot_05, error_05, status_code_05 = fetch_open_close_complaint_report()
+        # Add button to fetch data
+        if st.button("📥 Load All Complaint Report Data", key="load_all_complaint_report_btn",type="primary"):
+            with st.spinner("Loading data..."):
+                df_pivot_05, error_05, status_code_05 = fetch_open_close_complaint_report()
 
-        if error_05 is None and df_pivot_05 is not None:
-            styled_df = style_grand_total_dataframe(df_pivot_05)
-            st.dataframe(styled_df, use_container_width=True, height=400)
-            logger.info("Tab 1: Open Close Complaint Report displayed successfully")
+            if error_05 is None and df_pivot_05 is not None:
+                styled_df = style_grand_total_dataframe(df_pivot_05)
+                st.dataframe(styled_df, use_container_width=True, height=400)
+                logger.info("Tab 1: Open Close Complaint Report displayed successfully")
 
-            st.caption(
-                f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        else:
-            if status_code_05:
-                st.error(f"❌ Failed to fetch data. Status code: {status_code_05}")
-                logger.error(
-                    f"Tab 1: API request failed with status code {status_code_05}")
+                st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
             else:
-                st.error(f"❌ Error: {error_05}")
-                logger.error(f"Tab 1: Error - {error_05}")
-                st.caption(
-                    f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                if status_code_05:
+                    st.error(f"❌ Failed to fetch data. Status code: {status_code_05}")
+                    logger.error(f"Tab 1: API request failed with status code {status_code_05}")
+                else:
+                    st.error(f"❌ Error: {error_05}")
+                    logger.error(f"Tab 1: Error - {error_05}")
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            st.info("👆 Click the button above to load the all complaint report data")
+        
         st.divider()
 
         # ========================================
@@ -188,43 +214,46 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         st.header("📊 All Department Complaint Type Report")
         st.caption("View complaints categorized by type, department, and status (Open/Closed)")
 
-        # Validate dataset path exists
-        if not dataset_path:
-            st.error("❌ Dataset path is not provided.")
-            st.info("ℹ️ Please configure the dataset path in the settings.")
+        # Add button to fetch data
+        if st.button("📥 Load All Department Complaint Type Data", key="load_all_dept_complaint_btn",type="primary"):
+            # Validate dataset path exists
+            if not dataset_path:
+                st.error("❌ Dataset path is not provided.")
+                st.info("ℹ️ Please configure the dataset path in the settings.")
 
-        elif not os.path.exists(dataset_path):
-            st.error(f"❌ Dataset not found at: `{dataset_path}`")
-            st.info("ℹ️ Please verify the file path and try again.")
+            elif not os.path.exists(dataset_path):
+                st.error(f"❌ Dataset not found at: `{dataset_path}`")
+                st.info("ℹ️ Please verify the file path and try again.")
 
-        else:
-            # Show loading spinner while processing
-            with st.spinner("📊 Loading data..."):
-                @st.cache_data
-                def load_complaint_data(path):
-                    return generate_all_agging_complaint_report(path)
-                
-                complaint_data = load_complaint_data(dataset_path)
-
-            # Check if data is None or empty (handle both list and DataFrame)
-            if complaint_data is None:
-                st.warning("⚠️ No data available to display.")
-                st.info("ℹ️ The dataset may be empty or contain no valid records.")
             else:
-                complaint_df = complaint_data
+                # Show loading spinner while processing
+                with st.spinner("📊 Loading data..."):
+                    @st.cache_data
+                    def load_complaint_data(path):
+                        return generate_all_agging_complaint_report(path)
+                    
+                    complaint_data = load_complaint_data(dataset_path)
 
-                # Display dataframe
-                st.dataframe(
-                    complaint_df,
-                    use_container_width=True,
-                    height=400
-                )
+                # Check if data is None or empty (handle both list and DataFrame)
+                if complaint_data is None:
+                    st.warning("⚠️ No data available to display.")
+                    st.info("ℹ️ The dataset may be empty or contain no valid records.")
+                else:
+                    complaint_df = complaint_data
 
-                logger.info("Tab 1: All Agging Complaint Report displayed successfully")
-                st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                
-                
-                st.divider()
+                    # Display dataframe
+                    st.dataframe(
+                        complaint_df,
+                        use_container_width=True,
+                        height=400
+                    )
+
+                    logger.info("Tab 1: All Agging Complaint Report displayed successfully")
+                    st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            st.info("👆 Click the button above to load the all department complaint type data")
+        st.divider()
 
         # ========================================
         # SECTION 7: POWER OUTAGE DURATION
@@ -249,7 +278,7 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         )
 
         # Add a button to trigger the analysis
-        if st.button("🔍 Restoration Duration Hour Analysis Reports", key="analyze_button"):
+        if st.button("🔍 Restoration Duration Hour Analysis Reports", key="analyze_button",type="primary"):
             # Update session state only when button is clicked
             st.session_state.selected_outage_date = selected_date
             st.session_state.run_analysis = True
@@ -317,6 +346,11 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
 
         if st.session_state.last_analysis_time:
             st.caption(f"Last loaded: {st.session_state.last_analysis_time}")
+            
+        else:
+            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+            st.info("👆 Click the button above to load the X-Dashboard Shift wise Power Outage Duration Hour Analysis")
 
 
         # ========================================

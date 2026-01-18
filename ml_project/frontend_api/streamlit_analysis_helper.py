@@ -307,3 +307,402 @@ def generate_shift_duty_report(dataset_path: str, selected_month: str) -> pd.Ser
     month_fd = df[df['DATE'].dt.to_period('M') == selected_month]
     shift_duty_df = month_fd['SHIFT DUTY'].value_counts()
     return shift_duty_df
+
+import pandas as pd
+
+import pandas as pd
+
+def get_monthly_qrc_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning QRC value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of QUERY/REQUEST/COMPLAINT for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for QUERY/REQUEST/COMPLAINT column
+    qrc_df = month_df['QUERY/REQUEST/COMPLAINT'].value_counts()
+    
+    return qrc_df
+
+def get_monthly_section_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning SECTION value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of SECTION for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for SECTION column
+    section_df = month_df['SECTION'].value_counts()
+    
+    return section_df
+
+def get_monthly_subdivision_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning SUB-DIVISION value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of SUB-DIVISION for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for SUB-DIVISION column
+    subdivision_df = month_df['SUB-DIVISION'].value_counts()
+    
+    return subdivision_df
+
+def get_monthly_circle_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning CIRCLE value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of CIRCLE for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for CIRCLE column
+    circle_df = month_df['CIRCLE'].value_counts()
+    
+    return circle_df
+
+def get_monthly_consumer_number_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning CONSUMER NUMBER value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of CONSUMER NUMBER for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for CONSUMER NUMBER column
+    consumer_number_df = month_df['CONSUMER NUMBER'].value_counts()
+    
+    return consumer_number_df
+
+def get_monthly_mobile_number_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning MOBILE NUMB value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of MOBILE NUMB for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for MOBILE NUMB column
+    mobile_number_df = month_df['MOBILE NUMB'].value_counts()
+    
+    return mobile_number_df
+
+
+def get_monthly_dept_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning DEPT value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of DEPT for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for DEPT column
+    dept_df = month_df['DEPT'].value_counts()
+    
+    return dept_df
+
+
+def get_monthly_status_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning CLOSED/OPEN value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of CLOSED/OPEN for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for CLOSED/OPEN column
+    status_df = month_df['CLOSED/OPEN'].value_counts()
+    
+    return status_df
+
+
+def get_monthly_pscc_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning PSCC/FG/TO value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of PSCC/FG/TO for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for PSCC/FG/TO column
+    pscc_df = month_df['PSCC/FG/TO'].value_counts()
+    
+    return pscc_df
+
+
+def get_monthly_minute_data(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning MINUTE value counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    pd.Series
+        Value counts of MINUTE for the selected month
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Get value counts for MINUTE column
+    minute_df = month_df['MINUTE'].value_counts()
+    
+    return minute_df
+
+def get_monthly_remarks_analysis(dataset_path, selected_month):
+    """
+    Read Excel data and filter by selected month, returning REMARKS analysis counts.
+    
+    Parameters:
+    -----------
+    dataset_path : str
+        Path to the Excel file
+    selected_month : str or pd.Period
+        Month to filter (e.g., '2024-01' or pd.Period('2024-01', 'M'))
+    
+    Returns:
+    --------
+    dict
+        Dictionary containing counts of different remark categories
+    """
+    # Read the Excel file
+    df = pd.read_excel(dataset_path)
+    
+    # Convert DATE column to datetime
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    
+    # Convert selected_month to Period if it's a string
+    if isinstance(selected_month, str):
+        selected_month = pd.Period(selected_month, freq='M')
+    
+    # Filter data for the selected month
+    month_df = df[df['DATE'].dt.to_period('M') == selected_month]
+    
+    # Ensure REMARKS column is string type
+    month_df['REMARKS'] = month_df['REMARKS'].astype(str)
+    
+    # Count different categories
+    appreciation_count = month_df['REMARKS'].str.contains("Appreciation Tweet", case=False, na=False).sum()
+    awaited_consumer_count = month_df['REMARKS'].str.contains("Awaited consumer", case=False, na=False).sum()
+    number_count = month_df['REMARKS'].str.contains(r"\b\d{5}\b", na=False).sum()
+    
+    # Return results as dictionary
+    results = {
+        'Appreciation Tweets': appreciation_count,
+        'Awaited Consumer': awaited_consumer_count,
+        '5-digit Numbers': number_count,
+        'Total Remarks': len(month_df)
+    }
+    
+    return results
+
+
+
+
