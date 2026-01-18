@@ -37,6 +37,12 @@ try:
 except DatasetNotFoundError as e:
     print(f"Error: {e}")
 
+API_URL = "http://localhost:8000"
+FASTAPI_URL = "http://localhost:8000"
+FLASK_URL = "http://localhost:5000"
+
+
+
 logger = get_logger(__name__)
 
 

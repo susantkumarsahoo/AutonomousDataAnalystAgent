@@ -10,11 +10,15 @@ from ml_project.exceptions.exception import CustomException
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
 from ml_project.utils.helper import read_yaml
 from ml_project.frontend_api.streamlit_analysis_helper import close_power_outage_duration
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
+
 
 config = read_yaml("ml_project/configs/ml_project_config.yaml")
 dataset = config["data"]["raw_path"]
 
-from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
+API_URL = "http://localhost:8000"
+FASTAPI_URL = "http://localhost:8000"
+FLASK_URL = "http://localhost:5000"
 
 try:
     dataset_path = get_dataset_path("data/raw_path")
@@ -27,7 +31,7 @@ logger = get_logger(__name__)
 # CACHED API FUNCTIONS
 # =====================================================
 
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_open_complaint_pivot():
     """Fetch open complaint pivot data from API - cached"""
     try:
@@ -47,7 +51,7 @@ def fetch_open_complaint_pivot():
         return None, error_msg, None
 
 
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_open_close_complaint_pivot():
     """Fetch open/close complaint pivot data from API - cached"""
     try:
@@ -67,7 +71,7 @@ def fetch_open_close_complaint_pivot():
         return None, error_msg, None
 
 
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_agging_open_pivot():
     """Fetch agging open pivot data from API - cached"""
     try:
@@ -87,7 +91,7 @@ def fetch_agging_open_pivot():
         return None, error_msg, None
 
 
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_agging_open_close_pivot():
     """Fetch agging open/close pivot data from API - cached"""
     try:
@@ -107,7 +111,7 @@ def fetch_agging_open_close_pivot():
         return None, error_msg, None
     
 
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_open_close_complaint_report():
     """Fetch open/close complaint report data from API - cached"""
     try:
@@ -127,7 +131,7 @@ def fetch_open_close_complaint_report():
         return None, error_msg, None
     
 
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_all_agging_complaint_report():
     """Fetch all agging complaint report data from API - cached"""
     try:
@@ -146,7 +150,7 @@ def fetch_all_agging_complaint_report():
         logger.error(f"Error fetching all agging complaint report: {error_msg}")
         return None, error_msg, None
    
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_close_power_outage_duration(dataset_path, selected_date):
     """Fetch open/close complaint report data - cached"""
     try:
@@ -157,7 +161,7 @@ def fetch_close_power_outage_duration(dataset_path, selected_date):
         logger.error(f"Error fetching open/close complaint report: {error_msg}")
         return None
     
-@st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+@st.cache_data(ttl=600,show_spinner=True)
 def fetch_generate_month_wise_open_close_pivot_report(selected_month: str):
     """Fetch month wise open/close pivot report data from API - cached"""
     try:

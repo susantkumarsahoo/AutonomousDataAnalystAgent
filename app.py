@@ -154,15 +154,59 @@ try:
 
                 # Update dataset_path to the newly uploaded file
                 dataset_path = file_path
+                
+                # Store in session state for persistence
+                st.session_state['dataset_path'] = file_path
 
                 logger.info("New file saved | path=%s", file_path)
                 st.success(f"✅ **{uploaded_file.name}** uploaded successfully!")
-                st.info("🔄 Click **'Refresh API Status'** below to update the system")
+                st.info("🔄 Click **'Refresh System'** below to update the entire application")
             
             except Exception as e:
                 st.error(f"❌ Error uploading file: {str(e)}")
                 logger.error("File upload error | error=%s", str(e))
 
+        st.divider()
+        
+        # Refresh System Button
+        st.subheader("🔄 System Refresh")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            st.caption("Reload dataset path and refresh all components")
+        
+        with col2:
+            if st.button("🔄 Refresh System", type="primary", use_container_width=True):
+                try:
+                    # Check if files exist in the directory
+                    files_in_dir = [f for f in os.listdir(SAVE_DIR) if os.path.isfile(os.path.join(SAVE_DIR, f))]
+                    
+                    if files_in_dir:
+                        # Get the most recent file
+                        latest_file = max(
+                            [os.path.join(SAVE_DIR, f) for f in files_in_dir],
+                            key=os.path.getctime
+                        )
+                        
+                        # Update dataset_path
+                        dataset_path = latest_file
+                        st.session_state['dataset_path'] = latest_file
+                        
+                        logger.info("System refreshed | dataset_path=%s", dataset_path)
+                        st.success(f"✅ System refreshed successfully!")
+                        st.info(f"📄 Active dataset: {os.path.basename(dataset_path)}")
+                        
+                        # Force Streamlit to rerun and update all components
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ No dataset found in directory. Please upload a file first.")
+                        logger.warning("Refresh attempted but no files found in directory")
+                
+                except Exception as e:
+                    st.error(f"❌ Error refreshing system: {str(e)}")
+                    logger.error("System refresh error | error=%s", str(e))
+        
         st.divider()
     
         st.header("🔌 API Status")
@@ -260,8 +304,8 @@ try:
         st.title("⚠️ API Not Connected")
         st.warning("The FastAPI backend is not running yet. This is normal on first start.")
         
-        col1, col2 = st.columns([2, 1])
-        
+        col1 = st.columns(1)
+                
         with col1:
             st.info("""
             ### 📋 Quick Start Guide:
@@ -273,9 +317,14 @@ try:
             
             The system will automatically detect your uploaded file and start the services.
             """)
-        
-        with col2:
+
+            # Keep the image inside col1
             st.image("https://via.placeholder.com/300x200.png?text=Upload+Dataset", use_container_width=True)
+
+            # Add a refresh button inside col1
+            if st.button("🔄 Refresh All"):
+                st.experimental_rerun()
+
         
         logger.warning("API unavailable - waiting for dataset upload and server restart")
     
@@ -291,7 +340,7 @@ try:
                         font-weight: bold;
                         color: white;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);'>
-                🤖 Welcome to the CRM AI Agent Automation Engine
+                🤖 Welcome to the CRM AI Automation Engine!
             </div>
             """,
             unsafe_allow_html=True)
@@ -319,7 +368,7 @@ try:
         
         with col3:
             st.info("""
-            #### 3️⃣ Select Dashboard
+            #### 3️⃣ Select AI Report
             Choose a dashboard from the navigation panel to start analyzing
             """)
         

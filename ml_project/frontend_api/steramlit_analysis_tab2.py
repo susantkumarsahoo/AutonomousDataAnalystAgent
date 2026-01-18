@@ -41,6 +41,9 @@ try:
 except DatasetNotFoundError as e:
     print(f"Error: {e}")
 
+API_URL = "http://localhost:8000"
+FASTAPI_URL = "http://localhost:8000"
+FLASK_URL = "http://localhost:5000"
 
 # Fix Unicode encoding for Windows console
 if sys.platform == "win32":
@@ -191,7 +194,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.session_state.dataset_path = None
 
             # Load and cache the Excel data ONCE
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def load_excel_data(file_path):
                 """Load and cache Excel data"""
                 df = pd.read_excel(file_path)
@@ -199,65 +202,65 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 return df
 
             # Filter monthly data (cached)
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_month_data(df, selected_month):
                 """Filter data for selected month"""
                 return df[df['DATE'].dt.to_period('M') == selected_month]
 
             # Reports now take month_df directly (no file read)
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def generate_complaint_report(month_df):
                 return month_df['COMPLAINT TYPE'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def generate_date_report(month_df):
                 return month_df['DATE'].value_counts().sort_index()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def generate_shift_duty_report(month_df):
                 return month_df['SHIFT DUTY'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def generate_monthly_qrc_data(month_df):
                 return month_df['QUERY/REQUEST/COMPLAINT'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_section_data(month_df):
                 return month_df['SECTION'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_subdivision_data(month_df):
                 return month_df['SUB-DIVISION'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_circle_data(month_df):
                 return month_df['CIRCLE'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_consumer_number_data(month_df):
                 return month_df['CONSUMER NUMBER'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_mobile_number_data(month_df):
                 return month_df['MOBILE NUMB'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_dept_data(month_df):
                 return month_df['DEPT'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_status_data(month_df):
                 return month_df['CLOSED/OPEN'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_pscc_data(month_df):
                 return month_df['PSCC/FG/TO'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_minute_data(month_df):
                 return month_df['MINUTE'].value_counts()
 
-            @st.cache_data(ttl=600, max_entries=20, show_spinner=True, persist=True)
+            @st.cache_data(ttl=600,show_spinner=True)
             def get_monthly_remarks_analysis(month_df):
                 """Analyze REMARKS column for patterns"""
                 # Create a copy to avoid modifying cached data

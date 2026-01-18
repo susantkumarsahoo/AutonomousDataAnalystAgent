@@ -19,6 +19,7 @@ from ml_project.exceptions.exception import CustomException
 from ml_project.utils.helper import read_yaml
 from fastapi import BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
+from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
 from ml_project.backend_api.fastapi_analysis_helper import (
     open_complaint_pivot,
     open_close_complaint_pivot,
@@ -34,10 +35,10 @@ logger = get_logger(__name__)
 config = read_yaml("ml_project/configs/ml_project_config.yaml")
 dataset = config["data"]["raw_path"]
 
+API_URL = "http://localhost:8000"
+FASTAPI_URL = "http://localhost:8000"
+FLASK_URL = "http://localhost:5000"
 
-from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
-
-# FIXED: Handle missing dataset gracefully
 try:
     dataset_path = get_dataset_path("data/raw_path")
     print(f"Dataset found at: {dataset_path}")
@@ -253,11 +254,17 @@ async def get_open_complaint_pivot():
     try:
         logger.info("Open complaint pivot endpoint accessed")
         
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
         
-        # Get pivot table - run in thread pool to avoid blocking
+        # Run CPU-intensive task in thread pool
         pivot_df = await run_in_threadpool(
             open_complaint_pivot,
             dataset_path
@@ -276,18 +283,23 @@ async def get_open_complaint_pivot():
         logger.error(f"Open complaint pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.get("/open_close_complaint_pivot", tags=["Analytics"])
 async def get_open_close_complaint_pivot():
     """Get open/close complaints pivot table"""
     try:
         logger.info("Open/Close complaint pivot endpoint accessed")
 
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get pivot data - run in thread pool to avoid blocking
+        # Run CPU-intensive task in thread pool
         response_dict = await run_in_threadpool(
             open_close_complaint_pivot,
             dataset_path
@@ -303,18 +315,23 @@ async def get_open_close_complaint_pivot():
         logger.error(f"Open/Close complaint pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @app.get("/agging_open_pivot_dict", tags=["Analytics"])
 async def get_agging_open_pivot_dict():
     """Get aging open complaints pivot table"""
     try:
         logger.info("Aging open pivot endpoint accessed")
 
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get pivot data - run in thread pool to avoid blocking
+        # Run CPU-intensive task in thread pool
         response_dict = await run_in_threadpool(
             agging_open_pivot_dict,
             dataset_path
@@ -337,11 +354,17 @@ async def get_agging_open_close_pivot_dict():
     try:
         logger.info("Aging open/close pivot endpoint accessed")
 
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get pivot data - run in thread pool to avoid blocking
+        # Run CPU-intensive task in thread pool
         response_dict = await run_in_threadpool(
             agging_open_close_pivot_dict,
             dataset_path
@@ -365,11 +388,17 @@ async def get_open_close_complaint_report():
     try:
         logger.info("Open/Close complaint report endpoint accessed")
 
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # Get report data - run in thread pool to avoid blocking
+        # Run CPU-intensive task in thread pool
         response_dict = await run_in_threadpool(
             open_close_complaint_report, 
             dataset_path
@@ -385,15 +414,19 @@ async def get_open_close_complaint_report():
         logger.error(f"Open/Close report error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
-from fastapi import BackgroundTasks
-from fastapi.concurrency import run_in_threadpool
 
 @app.get("/all_agging_complaint_report", tags=["Analytics"])    
 async def get_generate_all_agging_complaint_report():
-    """Get open complaints report"""
+    """Get all aging complaint report"""
     try:
-        logger.info("Generate all agging Complaint report endpoint accessed")
+        logger.info("Generate all aging complaint report endpoint accessed")
 
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
         if not os.path.exists(dataset_path):
             logger.warning(f"Dataset not found | path={dataset_path}")
             raise HTTPException(status_code=404, detail="Dataset not found")
@@ -404,14 +437,14 @@ async def get_generate_all_agging_complaint_report():
             dataset_path
         )
 
-        logger.info(f"Open report generated | records={len(response_dict)}")
+        logger.info(f"Aging complaint report generated | records={len(response_dict)}")
         return JSONResponse(content=response_dict)
 
     except HTTPException:
         raise
     except Exception as e:
         error_msg = str(CustomException(e, sys))
-        logger.error(f"Open report error | error={error_msg}")
+        logger.error(f"Aging complaint report error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
 @app.get("/month_wise_open_close_pivot_report", tags=["Analytics"])    
