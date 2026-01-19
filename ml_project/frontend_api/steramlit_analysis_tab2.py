@@ -482,7 +482,12 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.caption("Last loaded: Not generated yet")
 
 
-            
+
+
+
+            # ===============================
+            # SECTION 2: MONTH WISE OPEN/CLOSE COMPLAINTS PIVOT
+            # ===============================
 
             st.divider()
 
@@ -495,7 +500,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.session_state.dataset_path = None
 
             # Load and cache the Excel data ONCE
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600, show_spinner=True)
             def load_excel_data(file_path):
                 """Load and cache Excel data"""
                 df = pd.read_excel(file_path)
@@ -508,66 +513,100 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 """Filter data for selected month"""
                 return df[df['DATE'].dt.to_period('M') == selected_month]
 
-            # Reports now take month_df directly (no file read)
+            # Enhanced report functions
             @st.cache_data(ttl=600)
             def generate_complaint_report(month_df):
-                return month_df['COMPLAINT TYPE'].value_counts()
+                result = month_df['COMPLAINT TYPE'].value_counts().reset_index()
+                result.columns = ['Complaint Type', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def generate_date_report(month_df):
-                return month_df['DATE'].value_counts().sort_index()
+                result = month_df['DATE'].value_counts().sort_index().reset_index()
+                result.columns = ['Date', 'Count']
+                result['Day of Week'] = pd.to_datetime(result['Date']).dt.day_name()
+                return result
 
             @st.cache_data(ttl=600)
             def generate_shift_duty_report(month_df):
-                return month_df['SHIFT DUTY'].value_counts()
+                result = month_df['SHIFT DUTY'].value_counts().reset_index()
+                result.columns = ['Shift Duty', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def generate_monthly_qrc_data(month_df):
-                return month_df['QUERY/REQUEST/COMPLAINT'].value_counts()
+                result = month_df['QUERY/REQUEST/COMPLAINT'].value_counts().reset_index()
+                result.columns = ['QRC Type', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_section_data(month_df):
-                return month_df['SECTION'].value_counts()
+                result = month_df['SECTION'].value_counts().reset_index()
+                result.columns = ['Section', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_subdivision_data(month_df):
-                return month_df['SUB-DIVISION'].value_counts()
+                result = month_df['SUB-DIVISION'].value_counts().reset_index()
+                result.columns = ['Sub-Division', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_circle_data(month_df):
-                return month_df['CIRCLE'].value_counts()
+                result = month_df['CIRCLE'].value_counts().reset_index()
+                result.columns = ['Circle', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_consumer_number_data(month_df):
-                return month_df['CONSUMER NUMBER'].value_counts()
+                result = month_df['CONSUMER NUMBER'].value_counts().reset_index()
+                result.columns = ['Consumer Number', 'Count']
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_mobile_number_data(month_df):
-                return month_df['MOBILE NUMB'].value_counts()
+                result = month_df['MOBILE NUMB'].value_counts().reset_index()
+                result.columns = ['Mobile Number', 'Count']
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_dept_data(month_df):
-                return month_df['DEPT'].value_counts()
+                result = month_df['DEPT'].value_counts().reset_index()
+                result.columns = ['Department', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_status_data(month_df):
-                return month_df['CLOSED/OPEN'].value_counts()
+                result = month_df['CLOSED/OPEN'].value_counts().reset_index()
+                result.columns = ['Status', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_pscc_data(month_df):
-                return month_df['PSCC/FG/TO'].value_counts()
+                result = month_df['PSCC/FG/TO'].value_counts().reset_index()
+                result.columns = ['PSCC Type', 'Count']
+                result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_minute_data(month_df):
-                return month_df['MINUTE'].value_counts()
+                result = month_df['MINUTE'].value_counts().reset_index()
+                result.columns = ['Minute', 'Count']
+                return result
 
             @st.cache_data(ttl=600)
             def get_monthly_remarks_analysis(month_df):
                 """Analyze REMARKS column for patterns"""
-                # Create a copy to avoid modifying cached data
                 temp_df = month_df.copy()
                 
-                # Ensure REMARKS column exists and is string type
                 if 'REMARKS' not in temp_df.columns:
                     return {
                         'Appreciation Tweets': 0,
@@ -576,7 +615,6 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         'Total Remarks': 0
                     }
                 
-                # Convert to string and handle NaN
                 temp_df['REMARKS'] = temp_df['REMARKS'].fillna('').astype(str)
                 
                 appreciation_count = temp_df['REMARKS'].str.contains("Appreciation Tweet", case=False, na=False).sum()
@@ -590,14 +628,47 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     'Total Remarks': len(temp_df)
                 }
 
+            @st.cache_data(ttl=600)
+            def get_performance_metrics(month_df):
+                """Calculate advanced performance metrics"""
+                metrics = {}
+                
+                # Average resolution time
+                if 'MINUTE' in month_df.columns:
+                    metrics['avg_resolution_time'] = month_df['MINUTE'].mean()
+                    metrics['median_resolution_time'] = month_df['MINUTE'].median()
+                    metrics['max_resolution_time'] = month_df['MINUTE'].max()
+                    metrics['min_resolution_time'] = month_df['MINUTE'].min()
+                
+                # Daily averages
+                metrics['avg_daily_complaints'] = len(month_df) / month_df['DATE'].nunique()
+                
+                # Peak hours analysis
+                if 'SHIFT DUTY' in month_df.columns:
+                    peak_shift = month_df['SHIFT DUTY'].value_counts().idxmax()
+                    metrics['peak_shift'] = peak_shift
+                
+                return metrics
+
+            @st.cache_data(ttl=600)
+            def get_trend_analysis(month_df):
+                """Analyze trends over the month"""
+                daily_counts = month_df.groupby(month_df['DATE'].dt.date).size().reset_index()
+                daily_counts.columns = ['Date', 'Count']
+                
+                # Calculate trend
+                if len(daily_counts) > 1:
+                    daily_counts['Trend'] = daily_counts['Count'].diff()
+                    daily_counts['7-Day Moving Avg'] = daily_counts['Count'].rolling(window=7, min_periods=1).mean()
+                
+                return daily_counts
+
 
             # Main App
-            st.header("📊 Month Wise Complaint Analysis Dashboard")
-
-            # Define your dataset path here
+            st.markdown("# 📊 Month Wise Complaint Analysis Dashboard")
+            st.markdown("### Comprehensive Analytics & Insights Platform")
 
             if dataset_path is not None:
-                # Save to session state safely
                 if "dataset_path" not in st.session_state or st.session_state.dataset_path != dataset_path:
                     st.session_state.dataset_path = dataset_path
                     st.session_state.report_generated = False
@@ -605,321 +676,562 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 try:
                     df = load_excel_data(dataset_path)
                     
-                    # Month and year selectors with unique keys
-                    col_month, col_year = st.columns(2)
+                    # Enhanced month and year selectors
+                    st.markdown("## 📅 Select Analysis Period")
+                    col_month, col_year, col_space = st.columns([1, 1, 2])
                     with col_month:
                         month = st.selectbox(
-                            "Select Month", 
+                            "Month", 
                             list(range(1, 13)), 
                             format_func=lambda x: pd.to_datetime(str(x), format="%m").strftime("%B"),
                             key='tab2_month_selector'
                         )
                     with col_year:
                         year = st.selectbox(
-                            "Select Year", 
+                            "Year", 
                             list(range(2020, 2031)),
                             key='tab2_year_selector'
                         )
 
-                    # Format selected month-year as Period
                     selected_month = pd.Period(f"{year}-{month:02d}", freq='M')
                     
-                    # Store in session state
                     if st.session_state.selected_month != str(selected_month):
                         st.session_state.selected_month = str(selected_month)
                         st.session_state.report_generated = False
 
-                    # Generate Report Button
-                    generate_button = st.button("🔍 Generate Report", type="primary", use_container_width=True, key='tab2_generate_btn')
+                    st.markdown("---")
+                    generate_button = st.button("🔍 Generate Comprehensive Report", type="primary", use_container_width=True, key='tab2_generate_btn')
 
-                    # Generate report when button clicked or if already generated
                     if generate_button or st.session_state.report_generated:
                         if generate_button:
                             st.session_state.report_generated = True
                         
                         try:
-                            with st.spinner("Generating comprehensive reports..."):
-                                # Generate all reports using cached functions
+                            with st.spinner("🔄 Generating comprehensive analytics..."):
                                 month_df = get_month_data(df, selected_month)
-
-                                complaint_report        = generate_complaint_report(month_df)
-                                date_report             = generate_date_report(month_df)
-                                shift_report            = generate_shift_duty_report(month_df)
-                                qrc_report              = generate_monthly_qrc_data(month_df)
-                                section_report          = get_monthly_section_data(month_df)
-                                subdivision_report      = get_monthly_subdivision_data(month_df)
-                                circle_report           = get_monthly_circle_data(month_df)
-                                consumer_number_report  = get_monthly_consumer_number_data(month_df)
-                                mobile_number_report    = get_monthly_mobile_number_data(month_df)
-                                dept_report             = get_monthly_dept_data(month_df)
-                                status_report           = get_monthly_status_data(month_df)
-                                pscc_report             = get_monthly_pscc_data(month_df)
-                                minute_report           = get_monthly_minute_data(month_df)
-                                remarks_report          = get_monthly_remarks_analysis(month_df)
 
                                 if len(month_df) == 0:
                                     st.warning(f"⚠️ No data found for {selected_month.strftime('%B %Y')}")
                                 else:
-                                    # Summary Metrics Section
-                                    st.subheader("📈 Summary Metrics")
-                                    metric_col1, metric_col2, metric_col3, metric_col4, metric_col5, metric_col6 = st.columns(6)
-                                    
-                                    with metric_col1:
-                                        st.metric("Total Records", len(month_df))
-                                    with metric_col2:
-                                        st.metric("Complaint Types", month_df['COMPLAINT TYPE'].nunique())
-                                    with metric_col3:
-                                        st.metric("Unique Dates", month_df['DATE'].nunique())
-                                    with metric_col4:
-                                        st.metric("Shift Types", month_df['SHIFT DUTY'].nunique())
-                                    with metric_col5:
-                                        closed_count = status_report.get('CLOSED', 0) if len(status_report) > 0 else 0
-                                        total_count = status_report.sum() if len(status_report) > 0 else 1
-                                        closure_rate = (closed_count / total_count * 100) if total_count > 0 else 0
-                                        st.metric("Closure Rate", f"{closure_rate:.1f}%")
-                                    with metric_col6:
-                                        if len(month_df) > 0 and 'MINUTE' in month_df.columns:
-                                            frt_value = month_df['MINUTE'].sum() / len(month_df)
-                                            st.metric("FRT Report", round(frt_value, 2))
-                                        else:
-                                            st.metric("FRT Report", "N/A")
+                                    # Generate all reports
+                                    complaint_report = generate_complaint_report(month_df)
+                                    date_report = generate_date_report(month_df)
+                                    shift_report = generate_shift_duty_report(month_df)
+                                    qrc_report = generate_monthly_qrc_data(month_df)
+                                    section_report = get_monthly_section_data(month_df)
+                                    subdivision_report = get_monthly_subdivision_data(month_df)
+                                    circle_report = get_monthly_circle_data(month_df)
+                                    consumer_number_report = get_monthly_consumer_number_data(month_df)
+                                    mobile_number_report = get_monthly_mobile_number_data(month_df)
+                                    dept_report = get_monthly_dept_data(month_df)
+                                    status_report = get_monthly_status_data(month_df)
+                                    pscc_report = get_monthly_pscc_data(month_df)
+                                    minute_report = get_monthly_minute_data(month_df)
+                                    remarks_report = get_monthly_remarks_analysis(month_df)
+                                    performance_metrics = get_performance_metrics(month_df)
+                                    trend_data = get_trend_analysis(month_df)
 
-                                    st.divider()
+                                    # Enhanced Summary Metrics Section
+                                    st.markdown("## 📊 Executive Summary")
+                                    st.markdown(f"### Analysis for **{selected_month.strftime('%B %Y')}**")
                                     
-                                    # Create tabs for better organization
-                                    tab1, tab2, tab3, tab4 = st.tabs(["📊 Main Reports", "🔍 Detailed Analysis", "📈 Visualizations", "🎯 Remarks Analysis"])
+                                    metric_cols = st.columns(6)
                                     
-                                    # Tab 1: Main Reports
+                                    with metric_cols[0]:
+                                        st.metric("📋 Total Records", f"{len(month_df):,}", help="Total number of complaints/queries received")
+                                    with metric_cols[1]:
+                                        st.metric("📂 Complaint Types", month_df['COMPLAINT TYPE'].nunique(), help="Unique types of complaints")
+                                    with metric_cols[2]:
+                                        st.metric("📅 Active Days", month_df['DATE'].nunique(), help="Days with recorded complaints")
+                                    with metric_cols[3]:
+                                        closed_count = status_report[status_report['Status'] == 'CLOSED']['Count'].sum() if len(status_report) > 0 else 0
+                                        total_count = status_report['Count'].sum() if len(status_report) > 0 else 1
+                                        closure_rate = (closed_count / total_count * 100) if total_count > 0 else 0
+                                        st.metric("✅ Closure Rate", f"{closure_rate:.1f}%", help="Percentage of closed cases")
+                                    with metric_cols[4]:
+                                        avg_daily = performance_metrics.get('avg_daily_complaints', 0)
+                                        st.metric("📈 Daily Average", f"{avg_daily:.1f}", help="Average complaints per day")
+                                    with metric_cols[5]:
+                                        if 'avg_resolution_time' in performance_metrics:
+                                            st.metric("⏱️ Avg Resolution", f"{performance_metrics['avg_resolution_time']:.0f} min", help="Average time to resolve")
+                                        else:
+                                            st.metric("⏱️ Avg Resolution", "N/A")
+
+                                    st.markdown("---")
+                                    
+                                    # Create enhanced tabs
+                                    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+                                        "📊 Overview & Analysis", 
+                                        "🔍 Detailed Reports", 
+                                        "📈 Data Visualizations", 
+                                        "🎯 Remarks & Insights",
+                                        "📉 Trends & Performance",
+                                        "🔎 Advanced Filters"
+                                    ])
+                                    
+                                    # Tab 1: Overview & Analysis
                                     with tab1:
-                                        col1, col2, col3 = st.columns(3)
+                                        st.markdown("### 🎯 Key Metrics Overview")
+                                        
+                                        col1, col2 = st.columns(2)
                                         
                                         with col1:
-                                            st.subheader("🔹 Complaint Type")
-                                            complaint_df = complaint_report.reset_index()
-                                            complaint_df.columns = ['Complaint Type', 'Count']
-                                            st.dataframe(complaint_df, use_container_width=True, height=300)
+                                            st.markdown("#### 📋 Complaint Type Distribution")
+                                            st.dataframe(
+                                                complaint_report.style.background_gradient(subset=['Count'], cmap='Blues'),
+                                                use_container_width=True, 
+                                                height=400
+                                            )
                                             
-                                            # Quick viz
-                                            fig = px.pie(complaint_df, values='Count', names='Complaint Type', hole=0.3)
-                                            st.plotly_chart(fig, use_container_width=True, key='complaint_pie_tab1')
+                                            fig = px.pie(
+                                                complaint_report, 
+                                                values='Count', 
+                                                names='Complaint Type',
+                                                title="Complaint Type Breakdown",
+                                                hole=0.4,
+                                                color_discrete_sequence=px.colors.qualitative.Set3
+                                            )
+                                            fig.update_traces(textposition='inside', textinfo='percent+label')
+                                            fig.update_layout(height=500)
+                                            st.plotly_chart(fig, use_container_width=True, key='complaint_pie_main')
                                         
                                         with col2:
-                                            st.subheader("📅 Date Distribution")
-                                            date_df = date_report.reset_index()
-                                            date_df.columns = ['Date', 'Count']
-                                            st.dataframe(date_df.head(10), use_container_width=True, height=300)
+                                            st.markdown("#### 🔄 Status Overview")
+                                            st.dataframe(
+                                                status_report.style.background_gradient(subset=['Count'], cmap='RdYlGn'),
+                                                use_container_width=True,
+                                                height=400
+                                            )
                                             
-                                            # Quick viz
-                                            fig = px.bar(date_df.head(10), x='Date', y='Count', color='Count')
-                                            st.plotly_chart(fig, use_container_width=True, key='date_bar_tab1')
+                                            fig = px.pie(
+                                                status_report, 
+                                                values='Count', 
+                                                names='Status',
+                                                title="Case Status Distribution",
+                                                color='Status',
+                                                color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'},
+                                                hole=0.4
+                                            )
+                                            fig.update_traces(textposition='inside', textinfo='percent+label')
+                                            fig.update_layout(height=500)
+                                            st.plotly_chart(fig, use_container_width=True, key='status_pie_main')
+                                        
+                                        st.markdown("---")
+                                        
+                                        col3, col4 = st.columns(2)
                                         
                                         with col3:
-                                            st.subheader("⏰ Shift Duty")
-                                            shift_df = shift_report.reset_index()
-                                            shift_df.columns = ['Shift Duty', 'Count']
-                                            st.dataframe(shift_df, use_container_width=True, height=300)
+                                            st.markdown("#### ⏰ Shift Distribution")
+                                            st.dataframe(
+                                                shift_report.style.background_gradient(subset=['Count'], cmap='Greens'),
+                                                use_container_width=True,
+                                                height=350
+                                            )
                                             
-                                            # Quick viz
-                                            fig = px.bar(shift_df, x='Shift Duty', y='Count', color='Count', color_continuous_scale='Greens')
-                                            st.plotly_chart(fig, use_container_width=True, key='shift_bar_tab1')
-                                        
-                                        st.divider()
-                                        
-                                        # QRC and Status
-                                        col4, col5 = st.columns(2)
+                                            fig = px.bar(
+                                                shift_report, 
+                                                x='Shift Duty', 
+                                                y='Count',
+                                                title="Complaints by Shift",
+                                                color='Count',
+                                                color_continuous_scale='Viridis',
+                                                text='Count'
+                                            )
+                                            fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                            fig.update_layout(height=450)
+                                            st.plotly_chart(fig, use_container_width=True, key='shift_bar_main')
                                         
                                         with col4:
-                                            st.subheader("📝 Query/Request/Complaint")
-                                            qrc_df = qrc_report.reset_index()
-                                            qrc_df.columns = ['QRC Type', 'Count']
-                                            st.dataframe(qrc_df, use_container_width=True, height=300)
+                                            st.markdown("#### 📝 QRC Analysis")
+                                            st.dataframe(
+                                                qrc_report.style.background_gradient(subset=['Count'], cmap='Purples'),
+                                                use_container_width=True,
+                                                height=350
+                                            )
                                             
-                                            fig = px.pie(qrc_df, values='Count', names='QRC Type', hole=0.4)
-                                            st.plotly_chart(fig, use_container_width=True, key='qrc_pie_tab1')
-                                        
-                                        with col5:
-                                            st.subheader("🔄 Status (Closed/Open)")
-                                            status_df = status_report.reset_index()
-                                            status_df.columns = ['Status', 'Count']
-                                            st.dataframe(status_df, use_container_width=True, height=300)
-                                            
-                                            fig = px.pie(status_df, values='Count', names='Status', 
-                                                        color='Status',
-                                                        color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'})
-                                            st.plotly_chart(fig, use_container_width=True, key='status_pie_tab1')
+                                            fig = px.bar(
+                                                qrc_report, 
+                                                x='QRC Type', 
+                                                y='Count',
+                                                title="Query/Request/Complaint Distribution",
+                                                color='Count',
+                                                color_continuous_scale='Plasma',
+                                                text='Count'
+                                            )
+                                            fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                            fig.update_layout(height=450)
+                                            st.plotly_chart(fig, use_container_width=True, key='qrc_bar_main')
+
+                                            st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                                     
-                                    # Tab 2: Detailed Analysis
+                                    # Tab 2: Detailed Reports
                                     with tab2:
-                                        detail_col1, detail_col2 = st.columns(2)
+                                        st.markdown("### 📑 Comprehensive Data Reports")
                                         
-                                        with detail_col1:
-                                            st.subheader("🏢 Section Analysis")
-                                            section_df = section_report.reset_index()
-                                            section_df.columns = ['Section', 'Count']
-                                            st.dataframe(section_df, use_container_width=True, height=250)
-                                            
-                                            st.subheader("🏘️ Sub-Division Analysis")
-                                            subdivision_df = subdivision_report.reset_index()
-                                            subdivision_df.columns = ['Sub-Division', 'Count']
-                                            st.dataframe(subdivision_df, use_container_width=True, height=250)
-                                            
-                                            st.subheader("🔵 Circle Analysis")
-                                            circle_df = circle_report.reset_index()
-                                            circle_df.columns = ['Circle', 'Count']
-                                            st.dataframe(circle_df, use_container_width=True, height=250)
-                                        
-                                        with detail_col2:
-                                            st.subheader("🏛️ Department Analysis")
-                                            dept_df = dept_report.reset_index()
-                                            dept_df.columns = ['Department', 'Count']
-                                            st.dataframe(dept_df, use_container_width=True, height=250)
-                                            
-                                            st.subheader("📞 PSCC/FG/TO Analysis")
-                                            pscc_df = pscc_report.reset_index()
-                                            pscc_df.columns = ['PSCC Type', 'Count']
-                                            st.dataframe(pscc_df, use_container_width=True, height=250)
-                                            
-                                            st.subheader("⏱️ Minute Analysis")
-                                            minute_df = minute_report.reset_index()
-                                            minute_df.columns = ['Minute', 'Count']
-                                            st.dataframe(minute_df.head(20), use_container_width=True, height=250)
-                                        
-                                        st.divider()
-                                        
-                                        # Consumer and Mobile Numbers
-                                        consumer_col1, consumer_col2 = st.columns(2)
-                                        
-                                        with consumer_col1:
-                                            st.subheader("👤 Top Consumer Numbers")
-                                            consumer_df = consumer_number_report.reset_index()
-                                            consumer_df.columns = ['Consumer Number', 'Count']
-                                            st.dataframe(consumer_df.head(20), use_container_width=True, height=300)
-                                        
-                                        with consumer_col2:
-                                            st.subheader("📱 Top Mobile Numbers")
-                                            mobile_df = mobile_number_report.reset_index()
-                                            mobile_df.columns = ['Mobile Number', 'Count']
-                                            st.dataframe(mobile_df.head(20), use_container_width=True, height=300)
-                                    
-                                    # Tab 3: Interactive Visualizations
-                                    with tab3:
-                                        st.subheader("📊 Interactive Visualizations")
-                                        
-                                        viz_option = st.selectbox(
-                                            "Select Analysis Type:",
-                                            ["Complaint Type Analysis", "Date Trends", "Shift Distribution", 
-                                            "QRC Analysis", "Status Overview", "Department Breakdown",
-                                            "Section & Circle", "Comparative Analysis"],
-                                            key='viz_selector_tab3'
+                                        report_selector = st.selectbox(
+                                            "Select Report Category:",
+                                            ["Geographic Analysis", "Department & Section", "Contact Information", "Time Analysis"],
+                                            key='report_selector_tab2'
                                         )
                                         
-                                        if viz_option == "Complaint Type Analysis":
-                                            chart_type = st.radio("Chart Type:", ["Bar Chart", "Pie Chart", "Treemap"], 
-                                                                horizontal=True, key='complaint_chart_tab3')
+                                        if report_selector == "Geographic Analysis":
+                                            col1, col2 = st.columns(2)
                                             
-                                            if chart_type == "Bar Chart":
-                                                fig = px.bar(complaint_df, x='Complaint Type', y='Count',
-                                                        title="Complaint Type Distribution", color='Count',
-                                                        color_continuous_scale='Blues')
+                                            with col1:
+                                                st.markdown("#### 🏘️ Sub-Division Analysis")
+                                                st.dataframe(
+                                                    subdivision_report.style.background_gradient(subset=['Count'], cmap='YlOrRd'),
+                                                    use_container_width=True,
+                                                    height=450
+                                                )
+                                                
+                                                fig = px.treemap(
+                                                    subdivision_report.head(15),
+                                                    path=['Sub-Division'],
+                                                    values='Count',
+                                                    title="Top 15 Sub-Divisions (Treemap)",
+                                                    color='Count',
+                                                    color_continuous_scale='RdYlGn'
+                                                )
+                                                fig.update_layout(height=500)
                                                 st.plotly_chart(fig, use_container_width=True)
-                                            elif chart_type == "Pie Chart":
-                                                fig = px.pie(complaint_df, values='Count', names='Complaint Type',
-                                                        title="Complaint Type Distribution", hole=0.3)
+                                            
+                                            with col2:
+                                                st.markdown("#### 🔵 Circle Analysis")
+                                                st.dataframe(
+                                                    circle_report.style.background_gradient(subset=['Count'], cmap='Blues'),
+                                                    use_container_width=True,
+                                                    height=450
+                                                )
+                                                
+                                                fig = px.bar(
+                                                    circle_report.head(15),
+                                                    y='Circle',
+                                                    x='Count',
+                                                    orientation='h',
+                                                    title="Top 15 Circles",
+                                                    color='Count',
+                                                    color_continuous_scale='Teal',
+                                                    text='Count'
+                                                )
+                                                fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                                fig.update_layout(height=500)
                                                 st.plotly_chart(fig, use_container_width=True)
+                                            
+                                            st.markdown("#### 🏢 Section Analysis")
+                                            st.dataframe(
+                                                section_report.style.background_gradient(subset=['Count'], cmap='Oranges'),
+                                                use_container_width=True,
+                                                height=400
+                                            )
+                                        
+                                        elif report_selector == "Department & Section":
+                                            col1, col2 = st.columns(2)
+                                            
+                                            with col1:
+                                                st.markdown("#### 🏛️ Department Distribution")
+                                                st.dataframe(
+                                                    dept_report.style.background_gradient(subset=['Count'], cmap='Purples'),
+                                                    use_container_width=True,
+                                                    height=500
+                                                )
+                                                
+                                                fig = px.sunburst(
+                                                    dept_report.head(10),
+                                                    path=['Department'],
+                                                    values='Count',
+                                                    title="Department Hierarchy"
+                                                )
+                                                fig.update_layout(height=600)
+                                                st.plotly_chart(fig, use_container_width=True)
+                                            
+                                            with col2:
+                                                st.markdown("#### 📞 PSCC/FG/TO Analysis")
+                                                st.dataframe(
+                                                    pscc_report.style.background_gradient(subset=['Count'], cmap='Greens'),
+                                                    use_container_width=True,
+                                                    height=500
+                                                )
+                                                
+                                                fig = px.pie(
+                                                    pscc_report,
+                                                    values='Count',
+                                                    names='PSCC Type',
+                                                    title="PSCC Type Distribution",
+                                                    hole=0.3
+                                                )
+                                                fig.update_layout(height=600)
+                                                st.plotly_chart(fig, use_container_width=True)
+                                        
+                                        elif report_selector == "Contact Information":
+                                            col1, col2 = st.columns(2)
+                                            
+                                            with col1:
+                                                st.markdown("#### 👤 Top Consumer Numbers")
+                                                st.dataframe(
+                                                    consumer_number_report.head(25).style.background_gradient(subset=['Count'], cmap='YlGnBu'),
+                                                    use_container_width=True,
+                                                    height=600
+                                                )
+                                            
+                                            with col2:
+                                                st.markdown("#### 📱 Top Mobile Numbers")
+                                                st.dataframe(
+                                                    mobile_number_report.head(25).style.background_gradient(subset=['Count'], cmap='YlOrBr'),
+                                                    use_container_width=True,
+                                                    height=600
+                                                )
+                                        
+                                        else:  # Time Analysis
+                                            st.markdown("#### ⏱️ Resolution Time Analysis")
+                                            st.dataframe(
+                                                minute_report.head(30).style.background_gradient(subset=['Count'], cmap='RdYlGn_r'),
+                                                use_container_width=True,
+                                                height=450
+                                            )
+                                            
+                                            fig = px.histogram(
+                                                month_df,
+                                                x='MINUTE',
+                                                nbins=50,
+                                                title="Distribution of Resolution Times",
+                                                labels={'MINUTE': 'Minutes', 'count': 'Frequency'},
+                                                color_discrete_sequence=['#636EFA']
+                                            )
+                                            fig.update_layout(height=500)
+                                            st.plotly_chart(fig, use_container_width=True)
+                                    
+                                    # Tab 3: Data Visualizations
+                                    with tab3:
+                                        st.markdown("### 📊 Interactive Data Visualizations")
+                                        
+                                        viz_category = st.radio(
+                                            "Select Visualization Category:",
+                                            ["Primary Metrics", "Geographic Insights", "Time-based Analysis", "Comparative Views"],
+                                            horizontal=True,
+                                            key='viz_category_tab3'
+                                        )
+                                        
+                                        if viz_category == "Primary Metrics":
+                                            st.markdown("#### 📋 Complaint Analysis")
+                                            
+                                            chart_type = st.radio(
+                                                "Visualization Type:",
+                                                ["Horizontal Bar", "Vertical Bar", "Donut Chart", "Treemap"],
+                                                horizontal=True,
+                                                key='primary_chart_type'
+                                            )
+                                            
+                                            if chart_type == "Horizontal Bar":
+                                                fig = px.bar(
+                                                    complaint_report,
+                                                    y='Complaint Type',
+                                                    x='Count',
+                                                    orientation='h',
+                                                    title="Complaint Type Distribution (Horizontal)",
+                                                    color='Count',
+                                                    color_continuous_scale='Viridis',
+                                                    text='Count'
+                                                )
+                                                fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                                fig.update_layout(height=600)
+                                            elif chart_type == "Vertical Bar":
+                                                fig = px.bar(
+                                                    complaint_report,
+                                                    x='Complaint Type',
+                                                    y='Count',
+                                                    title="Complaint Type Distribution (Vertical)",
+                                                    color='Count',
+                                                    color_continuous_scale='Blues',
+                                                    text='Count'
+                                                )
+                                                fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                                fig.update_layout(height=600)
+                                            elif chart_type == "Donut Chart":
+                                                fig = px.pie(
+                                                    complaint_report,
+                                                    values='Count',
+                                                    names='Complaint Type',
+                                                    title="Complaint Type Distribution",
+                                                    hole=0.5
+                                                )
+                                                fig.update_traces(textposition='inside', textinfo='percent+label')
+                                                fig.update_layout(height=600)
                                             else:
-                                                fig = px.treemap(complaint_df, path=['Complaint Type'], values='Count',
-                                                            title="Complaint Type Hierarchy")
-                                                st.plotly_chart(fig, use_container_width=True)
-                                        
-                                        elif viz_option == "Date Trends":
-                                            fig = px.line(date_df, x='Date', y='Count',
-                                                        title="Daily Complaint Trends", markers=True)
-                                            st.plotly_chart(fig, use_container_width=True)
+                                                fig = px.treemap(
+                                                    complaint_report,
+                                                    path=['Complaint Type'],
+                                                    values='Count',
+                                                    title="Complaint Type Hierarchy",
+                                                    color='Count',
+                                                    color_continuous_scale='RdYlGn'
+                                                )
+                                                fig.update_layout(height=600)
                                             
-                                            fig2 = px.bar(date_df.head(15), x='Date', y='Count',
-                                                        title="Top 15 Days by Count", color='Count')
-                                            st.plotly_chart(fig2, use_container_width=True)
+                                            st.plotly_chart(fig, use_container_width=True)
                                         
-                                        elif viz_option == "Shift Distribution":
-                                            chart_type = st.radio("Chart Type:", ["Bar Chart", "Donut Chart"], 
-                                                                horizontal=True, key='shift_chart_tab3')
+                                        elif viz_category == "Geographic Insights":
+                                            geo_col1, geo_col2 = st.columns(2)
                                             
-                                            if chart_type == "Bar Chart":
-                                                fig = px.bar(shift_df, x='Shift Duty', y='Count',
-                                                        title="Shift Duty Distribution", color='Count',
-                                                        color_continuous_scale='Greens')
-                                            else:
-                                                fig = px.pie(shift_df, values='Count', names='Shift Duty',
-                                                        title="Shift Duty Distribution", hole=0.4)
-                                            st.plotly_chart(fig, use_container_width=True)
-                                        
-                                        elif viz_option == "QRC Analysis":
-                                            fig = px.funnel(qrc_df, x='Count', y='QRC Type',
-                                                        title="QRC Distribution")
-                                            st.plotly_chart(fig, use_container_width=True)
-                                        
-                                        elif viz_option == "Status Overview":
-                                            fig = px.pie(status_df, values='Count', names='Status',
-                                                    title="Status Distribution",
-                                                    color='Status',
-                                                    color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'})
-                                            st.plotly_chart(fig, use_container_width=True)
-                                        
-                                        elif viz_option == "Department Breakdown":
-                                            fig = px.bar(dept_df, x='Department', y='Count',
-                                                    title="Department-wise Analysis", color='Count')
-                                            st.plotly_chart(fig, use_container_width=True)
-                                        
-                                        elif viz_option == "Section & Circle":
-                                            viz_col1, viz_col2 = st.columns(2)
-                                            
-                                            with viz_col1:
-                                                fig = px.bar(section_df.head(10), x='Section', y='Count',
-                                                        title="Top 10 Sections", color='Count')
+                                            with geo_col1:
+                                                fig = px.bar(
+                                                    subdivision_report.head(12),
+                                                    y='Sub-Division',
+                                                    x='Count',
+                                                    orientation='h',
+                                                    title="Top 12 Sub-Divisions",
+                                                    color='Count',
+                                                    color_continuous_scale='Reds',
+                                                    text='Count'
+                                                )
+                                                fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                                fig.update_layout(height=550)
                                                 st.plotly_chart(fig, use_container_width=True)
                                             
-                                            with viz_col2:
-                                                fig = px.pie(circle_df, values='Count', names='Circle',
-                                                        title="Circle Distribution", hole=0.3)
+                                            with geo_col2:
+                                                fig = px.sunburst(
+                                                    circle_report.head(12),
+                                                    path=['Circle'],
+                                                    values='Count',
+                                                    title="Circle Distribution (Sunburst)"
+                                                )
+                                                fig.update_layout(height=550)
+                                                st.plotly_chart(fig, use_container_width=True)
+                                            
+                                            fig = px.bar(
+                                                section_report.head(15),
+                                                x='Section',
+                                                y='Count',
+                                                title="Top 15 Sections by Count",
+                                                color='Count',
+                                                color_continuous_scale='Teal',
+                                                text='Count'
+                                            )
+                                            fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                            fig.update_layout(height=500, xaxis_tickangle=-45)
+                                            st.plotly_chart(fig, use_container_width=True)
+                                        
+                                        elif viz_category == "Time-based Analysis":
+                                            st.markdown("#### 📅 Daily Trends")
+                                            
+                                            fig = px.line(
+                                                date_report,
+                                                x='Date',
+                                                y='Count',
+                                                title="Daily Complaint Trends",
+                                                markers=True,
+                                                color_discrete_sequence=['#FF6692']
+                                            )
+                                            fig.update_traces(line=dict(width=3), marker=dict(size=8))
+                                            fig.update_layout(height=500)
+                                            st.plotly_chart(fig, use_container_width=True)
+                                            
+                                            col1, col2 = st.columns(2)
+                                            
+                                            with col1:
+                                                day_of_week_counts = date_report.groupby('Day of Week')['Count'].sum().reset_index()
+                                                day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                                                day_of_week_counts['Day of Week'] = pd.Categorical(day_of_week_counts['Day of Week'], categories=day_order, ordered=True)
+                                                day_of_week_counts = day_of_week_counts.sort_values('Day of Week')
+                                                
+                                                fig = px.bar(
+                                                    day_of_week_counts,
+                                                    x='Day of Week',
+                                                    y='Count',
+                                                    title="Complaints by Day of Week",
+                                                    color='Count',
+                                                    color_continuous_scale='Blues'
+                                                )
+                                                fig.update_layout(height=450)
+                                                st.plotly_chart(fig, use_container_width=True)
+                                            
+                                            with col2:
+                                                fig = px.bar(
+                                                    shift_report,
+                                                    x='Shift Duty',
+                                                    y='Count',
+                                                    title="Shift-wise Distribution",
+                                                    color='Count',
+                                                    color_continuous_scale='Greens',
+                                                    text='Count'
+                                                )
+                                                fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                                fig.update_layout(height=450)
                                                 st.plotly_chart(fig, use_container_width=True)
                                         
-                                        else:  # Comparative Analysis
+                                        else:  # Comparative Views
+                                            st.markdown("#### 🔄 Multi-dimensional Comparison")
+                                            
                                             comp_col1, comp_col2, comp_col3 = st.columns(3)
                                             
                                             with comp_col1:
-                                                fig = px.pie(complaint_df, values='Count', names='Complaint Type',
-                                                        title="Complaint Types")
+                                                fig = px.pie(
+                                                    complaint_report.head(8),
+                                                    values='Count',
+                                                    names='Complaint Type',
+                                                    title="Top Complaints",
+                                                    hole=0.4
+                                                )
+                                                fig.update_layout(height=400)
                                                 st.plotly_chart(fig, use_container_width=True)
                                             
                                             with comp_col2:
-                                                fig = px.pie(shift_df, values='Count', names='Shift Duty',
-                                                        title="Shift Distribution", hole=0.3)
+                                                fig = px.pie(
+                                                    status_report,
+                                                    values='Count',
+                                                    names='Status',
+                                                    title="Status Split",
+                                                    color='Status',
+                                                    color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'},
+                                                    hole=0.4
+                                                )
+                                                fig.update_layout(height=400)
                                                 st.plotly_chart(fig, use_container_width=True)
                                             
                                             with comp_col3:
-                                                fig = px.pie(status_df, values='Count', names='Status',
-                                                        title="Status Overview",
-                                                        color='Status',
-                                                        color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'})
+                                                fig = px.pie(
+                                                    qrc_report,
+                                                    values='Count',
+                                                    names='QRC Type',
+                                                    title="QRC Distribution",
+                                                    hole=0.4
+                                                )
+                                                fig.update_layout(height=400)
+                                                st.plotly_chart(fig, use_container_width=True)
+                                            
+                                            # Stacked comparison
+                                            st.markdown("#### 📊 Department vs Status Comparison")
+                                            if len(dept_report) > 0 and len(status_report) > 0:
+                                                dept_status = month_df.groupby(['DEPT', 'CLOSED/OPEN']).size().reset_index(name='Count')
+                                                fig = px.bar(
+                                                    dept_status.head(30),
+                                                    x='DEPT',
+                                                    y='Count',
+                                                    color='CLOSED/OPEN',
+                                                    title="Department-wise Status Distribution",
+                                                    barmode='stack',
+                                                    color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'}
+                                                )
+                                                fig.update_layout(height=500, xaxis_tickangle=-45)
                                                 st.plotly_chart(fig, use_container_width=True)
                                     
-                                    # Tab 4: Remarks Analysis
+                                    # Tab 4: Remarks & Insights
                                     with tab4:
-                                        st.subheader("💬 Remarks Analysis")
+                                        st.markdown("### 💬 Remarks Analysis & Insights")
                                         
-                                        # Display metrics
-                                        remark_col1, remark_col2, remark_col3, remark_col4 = st.columns(4)
+                                        remark_cols = st.columns(4)
                                         
-                                        with remark_col1:
-                                            st.metric("Total Remarks", remarks_report['Total Remarks'])
-                                        with remark_col2:
-                                            st.metric("Appreciation Tweets", remarks_report['Appreciation Tweets'])
-                                        with remark_col3:
-                                            st.metric("Awaited Consumer", remarks_report['Awaited Consumer'])
-                                        with remark_col4:
-                                            st.metric("5-digit Numbers", remarks_report['5-digit Numbers'])
+                                        with remark_cols[0]:
+                                            st.metric("📝 Total Remarks", f"{remarks_report['Total Remarks']:,}")
+                                        with remark_cols[1]:
+                                            st.metric("👍 Appreciation Tweets", remarks_report['Appreciation Tweets'])
+                                        with remark_cols[2]:
+                                            st.metric("⏳ Awaited Consumer", remarks_report['Awaited Consumer'])
+                                        with remark_cols[3]:
+                                            st.metric("🔢 5-digit Numbers", remarks_report['5-digit Numbers'])
                                         
-                                        # Create visualization
+                                        st.markdown("---")
+                                        
                                         remarks_viz_data = pd.DataFrame({
                                             'Category': ['Appreciation Tweets', 'Awaited Consumer', '5-digit Numbers'],
                                             'Count': [
@@ -929,114 +1241,273 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             ]
                                         })
                                         
-                                        # Only show visualizations if there's data
                                         if remarks_viz_data['Count'].sum() > 0:
                                             viz_col1, viz_col2 = st.columns(2)
                                             
                                             with viz_col1:
-                                                fig = px.bar(remarks_viz_data, x='Category', y='Count',
-                                                        title="Remarks Category Distribution",
-                                                        color='Count', color_continuous_scale='Viridis')
+                                                fig = px.bar(
+                                                    remarks_viz_data,
+                                                    x='Category',
+                                                    y='Count',
+                                                    title="Remarks Pattern Distribution",
+                                                    color='Count',
+                                                    color_continuous_scale='Viridis',
+                                                    text='Count'
+                                                )
+                                                fig.update_traces(texttemplate='%{text}', textposition='outside')
+                                                fig.update_layout(height=500)
                                                 st.plotly_chart(fig, use_container_width=True)
                                             
                                             with viz_col2:
-                                                fig = px.pie(remarks_viz_data, values='Count', names='Category',
-                                                        title="Remarks Category Breakdown", hole=0.4)
+                                                fig = px.pie(
+                                                    remarks_viz_data[remarks_viz_data['Count'] > 0],
+                                                    values='Count',
+                                                    names='Category',
+                                                    title="Remarks Category Breakdown",
+                                                    hole=0.5
+                                                )
+                                                fig.update_traces(textposition='inside', textinfo='percent+label')
+                                                fig.update_layout(height=500)
                                                 st.plotly_chart(fig, use_container_width=True)
                                         else:
-                                            st.info("No remarks patterns found in the selected month.")
+                                            st.info("ℹ️ No specific remarks patterns found in the selected month.")
                                         
-                                        # Show sample remarks
-                                        st.divider()
-                                        st.subheader("📝 Sample Remarks")
+                                        st.markdown("---")
+                                        st.markdown("#### 📋 Sample Remarks Data")
                                         if 'REMARKS' in month_df.columns:
-                                            sample_remarks = month_df[['DATE', 'REMARKS']].head(10)
-                                            st.dataframe(sample_remarks, use_container_width=True)
+                                            sample_remarks_df = month_df[['DATE', 'COMPLAINT TYPE', 'REMARKS']].head(20)
+                                            st.dataframe(
+                                                sample_remarks_df.style.set_properties(**{'text-align': 'left'}),
+                                                use_container_width=True,
+                                                height=450
+                                            )
                                         else:
-                                            st.info("REMARKS column not found in dataset")
+                                            st.info("ℹ️ REMARKS column not found in dataset")
                                     
-                                    st.divider()
-                                    
-                                    # Filter and Explore Section
-                                    st.header("🔍 Filter and Explore Data")
-                                    
-                                    filter_col1, filter_col2, filter_col3 = st.columns(3)
-                                    
-                                    with filter_col1:
-                                        selected_complaint = st.multiselect(
-                                            "Filter by Complaint Type:",
-                                            options=sorted(month_df['COMPLAINT TYPE'].unique()),
-                                            key='complaint_filter_tab2'
+                                    # Tab 5: Trends & Performance
+                                    with tab5:
+                                        st.markdown("### 📉 Trends & Performance Analytics")
+                                        
+                                        perf_col1, perf_col2, perf_col3, perf_col4 = st.columns(4)
+                                        
+                                        with perf_col1:
+                                            st.metric("📊 Daily Avg", f"{performance_metrics.get('avg_daily_complaints', 0):.1f} cases")
+                                        with perf_col2:
+                                            if 'avg_resolution_time' in performance_metrics:
+                                                st.metric("⏱️ Avg Time", f"{performance_metrics['avg_resolution_time']:.0f} min")
+                                            else:
+                                                st.metric("⏱️ Avg Time", "N/A")
+                                        with perf_col3:
+                                            if 'median_resolution_time' in performance_metrics:
+                                                st.metric("📍 Median Time", f"{performance_metrics['median_resolution_time']:.0f} min")
+                                            else:
+                                                st.metric("📍 Median Time", "N/A")
+                                        with perf_col4:
+                                            if 'peak_shift' in performance_metrics:
+                                                st.metric("🔥 Peak Shift", performance_metrics['peak_shift'])
+                                            else:
+                                                st.metric("🔥 Peak Shift", "N/A")
+                                        
+                                        st.markdown("---")
+                                        
+                                        st.markdown("#### 📈 Daily Trend Analysis")
+                                        st.dataframe(
+                                            trend_data.style.background_gradient(subset=['Count'], cmap='YlOrRd'),
+                                            use_container_width=True,
+                                            height=400
                                         )
-                                    
-                                    with filter_col2:
-                                        selected_shift = st.multiselect(
-                                            "Filter by Shift Duty:",
-                                            options=sorted(month_df['SHIFT DUTY'].unique()),
-                                            key='shift_filter_tab2'
+                                        
+                                        fig = px.line(
+                                            trend_data,
+                                            x='Date',
+                                            y='Count',
+                                            title="Daily Complaint Volume Trend",
+                                            markers=True
                                         )
+                                        if '7-Day Moving Avg' in trend_data.columns:
+                                            fig.add_scatter(x=trend_data['Date'], y=trend_data['7-Day Moving Avg'], 
+                                                        mode='lines', name='7-Day Moving Average',
+                                                        line=dict(color='red', width=2, dash='dash'))
+                                        fig.update_layout(height=550)
+                                        st.plotly_chart(fig, use_container_width=True)
+                                        
+                                        col1, col2 = st.columns(2)
+                                        
+                                        with col1:
+                                            st.markdown("#### 🎯 Performance Summary")
+                                            perf_summary = pd.DataFrame({
+                                                'Metric': ['Total Cases', 'Avg Daily', 'Peak Day Count', 'Lowest Day Count'],
+                                                'Value': [
+                                                    len(month_df),
+                                                    f"{performance_metrics.get('avg_daily_complaints', 0):.1f}",
+                                                    trend_data['Count'].max(),
+                                                    trend_data['Count'].min()
+                                                ]
+                                            })
+                                            st.dataframe(perf_summary, use_container_width=True, height=250)
+                                        
+                                        with col2:
+                                            if 'avg_resolution_time' in performance_metrics:
+                                                st.markdown("#### ⏱️ Resolution Time Stats")
+                                                time_stats = pd.DataFrame({
+                                                    'Statistic': ['Average', 'Median', 'Minimum', 'Maximum'],
+                                                    'Minutes': [
+                                                        f"{performance_metrics.get('avg_resolution_time', 0):.0f}",
+                                                        f"{performance_metrics.get('median_resolution_time', 0):.0f}",
+                                                        f"{performance_metrics.get('min_resolution_time', 0):.0f}",
+                                                        f"{performance_metrics.get('max_resolution_time', 0):.0f}"
+                                                    ]
+                                                })
+                                                st.dataframe(time_stats, use_container_width=True, height=250)
                                     
-                                    with filter_col3:
-                                        selected_status = st.multiselect(
-                                            "Filter by Status:",
-                                            options=sorted(month_df['CLOSED/OPEN'].unique()),
-                                            key='status_filter_tab2'
-                                        )
+                                    # Tab 6: Advanced Filters
+                                    with tab6:
+                                        st.markdown("### 🔎 Advanced Data Filtering & Export")
+                                        
+                                        st.markdown("#### 🎛️ Filter Controls")
+                                        filter_col1, filter_col2, filter_col3 = st.columns(3)
+                                        
+                                        with filter_col1:
+                                            selected_complaint = st.multiselect(
+                                                "🔹 Complaint Type",
+                                                options=sorted(month_df['COMPLAINT TYPE'].unique()),
+                                                key='complaint_filter_tab6'
+                                            )
+                                        
+                                        with filter_col2:
+                                            selected_shift = st.multiselect(
+                                                "⏰ Shift Duty",
+                                                options=sorted(month_df['SHIFT DUTY'].unique()),
+                                                key='shift_filter_tab6'
+                                            )
+                                        
+                                        with filter_col3:
+                                            selected_status = st.multiselect(
+                                                "🔄 Status",
+                                                options=sorted(month_df['CLOSED/OPEN'].unique()),
+                                                key='status_filter_tab6'
+                                            )
+                                        
+                                        filter_col4, filter_col5, filter_col6 = st.columns(3)
+                                        
+                                        with filter_col4:
+                                            selected_dept = st.multiselect(
+                                                "🏛️ Department",
+                                                options=sorted(month_df['DEPT'].unique()),
+                                                key='dept_filter_tab6'
+                                            )
+                                        
+                                        with filter_col5:
+                                            selected_section = st.multiselect(
+                                                "🏢 Section",
+                                                options=sorted(month_df['SECTION'].unique()),
+                                                key='section_filter_tab6'
+                                            )
+                                        
+                                        with filter_col6:
+                                            selected_circle = st.multiselect(
+                                                "🔵 Circle",
+                                                options=sorted(month_df['CIRCLE'].unique()),
+                                                key='circle_filter_tab6'
+                                            )
+                                        
+                                        # Apply filters
+                                        filtered_df = month_df.copy()
+                                        
+                                        if selected_complaint:
+                                            filtered_df = filtered_df[filtered_df['COMPLAINT TYPE'].isin(selected_complaint)]
+                                        if selected_shift:
+                                            filtered_df = filtered_df[filtered_df['SHIFT DUTY'].isin(selected_shift)]
+                                        if selected_status:
+                                            filtered_df = filtered_df[filtered_df['CLOSED/OPEN'].isin(selected_status)]
+                                        if selected_dept:
+                                            filtered_df = filtered_df[filtered_df['DEPT'].isin(selected_dept)]
+                                        if selected_section:
+                                            filtered_df = filtered_df[filtered_df['SECTION'].isin(selected_section)]
+                                        if selected_circle:
+                                            filtered_df = filtered_df[filtered_df['CIRCLE'].isin(selected_circle)]
+                                        
+                                        st.markdown("---")
+                                        st.markdown(f"#### 📊 Filtered Results: **{len(filtered_df):,}** records")
+                                        
+                                        if len(filtered_df) > 0:
+                                            # Show filtered summary
+                                            summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+                                            
+                                            with summary_col1:
+                                                st.metric("Total Records", f"{len(filtered_df):,}")
+                                            with summary_col2:
+                                                closed_filtered = (filtered_df['CLOSED/OPEN'] == 'CLOSED').sum()
+                                                closure_filtered = (closed_filtered / len(filtered_df) * 100) if len(filtered_df) > 0 else 0
+                                                st.metric("Closure Rate", f"{closure_filtered:.1f}%")
+                                            with summary_col3:
+                                                st.metric("Complaint Types", filtered_df['COMPLAINT TYPE'].nunique())
+                                            with summary_col4:
+                                                if 'MINUTE' in filtered_df.columns:
+                                                    avg_time_filtered = filtered_df['MINUTE'].mean()
+                                                    st.metric("Avg Time", f"{avg_time_filtered:.0f} min")
+                                                else:
+                                                    st.metric("Avg Time", "N/A")
+                                            
+                                            st.markdown("---")
+                                            st.dataframe(
+                                                filtered_df.style.set_properties(**{'text-align': 'left'}),
+                                                use_container_width=True,
+                                                height=500
+                                            )
+                                            
+                                            # Download options
+                                            st.markdown("#### 📥 Export Options")
+                                            download_col1, download_col2 = st.columns(2)
+                                            
+                                            with download_col1:
+                                                csv = filtered_df.to_csv(index=False).encode('utf-8')
+                                                st.download_button(
+                                                    label="📄 Download as CSV",
+                                                    data=csv,
+                                                    file_name=f'filtered_data_{selected_month}.csv',
+                                                    mime='text/csv',
+                                                    use_container_width=True,
+                                                    key='download_csv_tab6'
+                                                )
+                                            
+                                            with download_col2:
+                                                # Create Excel file in memory
+                                                from io import BytesIO
+                                                buffer = BytesIO()
+                                                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                                                    filtered_df.to_excel(writer, index=False, sheet_name='Filtered Data')
+                                                buffer.seek(0)
+                                                
+                                                st.download_button(
+                                                    label="📊 Download as Excel",
+                                                    data=buffer,
+                                                    file_name=f'filtered_data_{selected_month}.xlsx',
+                                                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                                    use_container_width=True,
+                                                    key='download_excel_tab6'
+                                                )
+                                        else:
+                                            st.warning("⚠️ No records match the selected filters. Please adjust your criteria.")
                                     
-                                    # Apply filters
-                                    filtered_df = month_df.copy()
-                                    if selected_complaint:
-                                        filtered_df = filtered_df[filtered_df['COMPLAINT TYPE'].isin(selected_complaint)]
-                                    if selected_shift:
-                                        filtered_df = filtered_df[filtered_df['SHIFT DUTY'].isin(selected_shift)]
-                                    if selected_status:
-                                        filtered_df = filtered_df[filtered_df['CLOSED/OPEN'].isin(selected_status)]
+                                    st.markdown("---")
+                                    st.success("✅ Report generated successfully!")
                                     
-                                    st.subheader(f"Filtered Data ({len(filtered_df)} records)")
-                                    st.dataframe(filtered_df, use_container_width=True, height=400)
-                                    
-                                    # Download filtered data
-                                    csv = filtered_df.to_csv(index=False).encode('utf-8')
-                                    st.download_button(
-                                        label="📥 Download Filtered Data as CSV",
-                                        data=csv,
-                                        file_name=f'filtered_data_{selected_month}.csv',
-                                        mime='text/csv',
-                                        key='download_filtered_tab2'
-                                    )
-                                
-                                st.success("✅ Report generated successfully!")
-                                
                         except Exception as e:
                             st.error(f"❌ Error processing data: {str(e)}")
-                            st.info("Please ensure your Excel file has all required columns")
+                            st.info("💡 Please ensure your Excel file has all required columns")
                             st.session_state.report_generated = False
                     else:
-                        st.info("👆 Select a month and year, then click 'Generate Report' to view the analysis")
+                        st.info("👆 Select a month and year from the dropdowns above, then click 'Generate Comprehensive Report'")
                 
                 except Exception as e:
                     st.error(f"❌ Error loading file: {str(e)}")
-                    st.info("Please check if the file path is correct and the file exists")
-                    
+                    st.info("💡 Please check if the file path is correct and the file exists")
             else:
-                st.info("👆 Please set the dataset_path variable in the code")
-                st.markdown("""
-                ### Expected File Format:
-                Your Excel file should contain the following columns:
-                - **COMPLAINT TYPE**: Type of complaint
-                - **DATE**: Date of complaint
-                - **SHIFT DUTY**: Shift during which complaint occurred
-                - **QUERY/REQUEST/COMPLAINT**: QRC classification
-                - **SECTION, SUB-DIVISION, CIRCLE**: Location details
-                - **DEPT**: Department information
-                - **CLOSED/OPEN**: Status of complaint
-                - **PSCC/FG/TO**: PSCC type
-                - **MINUTE**: Minute values
-                - **REMARKS**: Remarks text
-                - **CONSUMER NUMBER**: Consumer numbers
-                - **MOBILE NUMB**: Mobile numbers
-                """)
-            
+                st.warning("⚠️ Please provide a valid dataset path to begin analysis")
+                st.info("💡 Set the `dataset_path` variable to point to your Excel file")
+                    
+
             st.header("📊 Year Wise Complaint Analysis Dashboard")
             st.divider()
             # Add your Streamlit code for Tab 2 here
