@@ -39,13 +39,15 @@ API_URL = "http://localhost:8000"
 FASTAPI_URL = "http://localhost:8000"
 FLASK_URL = "http://localhost:5000"
 
+
 try:
     dataset_path = get_dataset_path("data/raw_path")
     print(f"Dataset found at: {dataset_path}")
 except DatasetNotFoundError as e:
-    dataset_path = None  # ADDED THIS LINE
+    dataset_path = None  
     print(f"Error: {e}")
     
+
 # -----------------------------------------------------------------------------
 # FastAPI app
 # -----------------------------------------------------------------------------
@@ -229,7 +231,7 @@ def get_healthcheck():
     try:
         logger.info("Healthcheck endpoint accessed")
         # FIXED: Re-check for dataset on each healthcheck
-        current_dataset_path = dataset_path
+        current_dataset_path = None
         try:
             current_dataset_path = get_dataset_path("data/raw_path")
         except DatasetNotFoundError:
@@ -253,6 +255,12 @@ async def get_open_complaint_pivot():
     """Get open complaints pivot table"""
     try:
         logger.info("Open complaint pivot endpoint accessed")
+        
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
         
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:
@@ -282,12 +290,18 @@ async def get_open_complaint_pivot():
         error_msg = str(CustomException(e, sys))
         logger.error(f"Open complaint pivot error | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
+    
 @app.get("/open_close_complaint_pivot", tags=["Analytics"])
 async def get_open_close_complaint_pivot():
     """Get open/close complaints pivot table"""
     try:
         logger.info("Open/Close complaint pivot endpoint accessed")
+        
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
 
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:
@@ -321,6 +335,13 @@ async def get_agging_open_pivot_dict():
     try:
         logger.info("Aging open pivot endpoint accessed")
 
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
+
+
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:
             logger.error("Dataset path is not configured")
@@ -353,6 +374,12 @@ async def get_agging_open_close_pivot_dict():
     """Get aging open/close complaints pivot table"""
     try:
         logger.info("Aging open/close pivot endpoint accessed")
+
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
 
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:
@@ -388,6 +415,12 @@ async def get_open_close_complaint_report():
     try:
         logger.info("Open/Close complaint report endpoint accessed")
 
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
+
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:
             logger.error("Dataset path is not configured")
@@ -421,6 +454,12 @@ async def get_generate_all_agging_complaint_report():
     try:
         logger.info("Generate all aging complaint report endpoint accessed")
 
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
+        
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:
             logger.error("Dataset path is not configured")
@@ -459,6 +498,12 @@ async def get_generate_month_wise_open_close_pivot_report(selected_month: str):
     """
     try:
         logger.info(f"generate_month_wise_open_close_pivot_report endpoint accessed | month={selected_month}")
+
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
 
         # Check if dataset_path is None or empty
         if dataset_path is None or not dataset_path:

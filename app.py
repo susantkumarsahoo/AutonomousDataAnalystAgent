@@ -167,20 +167,22 @@ try:
                 logger.error("File upload error | error=%s", str(e))
 
         st.divider()
-        
+
         # Refresh System Button
         st.subheader("🔄 System Refresh")
-        
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            st.caption("Reload dataset path and refresh all components")
-        
-        with col2:
-            if st.button("🔄 Refresh System", type="primary", use_container_width=True):
-                try:
+
+        st.info("Once Reload dataset path and click Refresh System !")
+
+        if st.button("🔄 Refresh System", type="primary", use_container_width=True):
+            try:
+                # Check if SAVE_DIR exists
+                if not os.path.exists(SAVE_DIR):
+                    st.error(f"❌ Directory not found: {SAVE_DIR}")
+                    logger.error("SAVE_DIR does not exist | path=%s", SAVE_DIR)
+                else:
                     # Check if files exist in the directory
-                    files_in_dir = [f for f in os.listdir(SAVE_DIR) if os.path.isfile(os.path.join(SAVE_DIR, f))]
+                    files_in_dir = [f for f in os.listdir(SAVE_DIR) 
+                                if os.path.isfile(os.path.join(SAVE_DIR, f))]
                     
                     if files_in_dir:
                         # Get the most recent file
@@ -189,24 +191,23 @@ try:
                             key=os.path.getctime
                         )
                         
-                        # Update dataset_path
-                        dataset_path = latest_file
+                        # Update dataset_path in session state
                         st.session_state['dataset_path'] = latest_file
                         
-                        logger.info("System refreshed | dataset_path=%s", dataset_path)
+                        logger.info("System refreshed | dataset_path=%s", latest_file)
                         st.success(f"✅ System refreshed successfully!")
-                        st.info(f"📄 Active dataset: {os.path.basename(dataset_path)}")
+                        st.info(f"📄 Active dataset: {os.path.basename(latest_file)}")
                         
                         # Force Streamlit to rerun and update all components
                         st.rerun()
                     else:
                         st.warning("⚠️ No dataset found in directory. Please upload a file first.")
                         logger.warning("Refresh attempted but no files found in directory")
-                
-                except Exception as e:
-                    st.error(f"❌ Error refreshing system: {str(e)}")
-                    logger.error("System refresh error | error=%s", str(e))
-        
+            
+            except Exception as e:
+                st.error(f"❌ Error refreshing system: {str(e)}")
+                logger.error("System refresh error | error=%s", str(e), exc_info=True)
+
         st.divider()
     
         st.header("🔌 API Status")
