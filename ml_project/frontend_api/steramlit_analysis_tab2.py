@@ -20,7 +20,7 @@ from ml_project.frontend_api.streamlit_analysis_helper import*
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
-from ml_project.frontend_api.streamlit_cache_data import fetch_generate_month_wise_open_close_pivot_report
+from ml_project.frontend_api.streamlit_cache_data import fetch_generate_month_wise_open_close_pivot_report,fetch_generate_quarter_wise_agging_pivot_report,fetch_generate_year_wise_open_close_pivot_report
 from ml_project.frontend_api.streamlit_analysis_helper import (
 generate_month_wise_open_clode_pivot_report,
 generate_complaint_report,
@@ -94,21 +94,8 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
 
             # Create columns for Year and Month selection
             col1, col2, col3 = st.columns([1, 1, 1])
-            
+                        
             with col1:
-                # Year selector
-                current_year = datetime.today().year
-                selected_year = st.selectbox(
-                    "Select Year",
-                    options=list(range(current_year - 5, current_year + 1)),
-                    index=list(range(current_year - 5, current_year + 1)).index(
-                        st.session_state.selected_year_tab2
-                    ),
-                    key="year_selector_tab2",
-                    help="Choose the year"
-                )
-            
-            with col2:
                 # Month selector
                 months = {
                     1: "January", 2: "February", 3: "March", 4: "April",
@@ -123,6 +110,20 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     key="month_selector_tab2",
                     help="Choose the month"
                 )
+
+            with col2:
+                # Year selector
+                current_year = datetime.today().year
+                selected_year = st.selectbox(
+                    "Select Year",
+                    options=list(range(current_year - 5, current_year + 1)),
+                    index=list(range(current_year - 5, current_year + 1)).index(
+                        st.session_state.selected_year_tab2
+                    ),
+                    key="year_selector_tab2",
+                    help="Choose the year"
+                )
+
             
             with col3:
                 st.write("")  # Spacing
@@ -179,8 +180,308 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
             else:
                 st.caption("Last loaded: Not generated yet")
+
+            st.divider()
+            # ========================================
+            # SECTION 1: YEAR TO DATE RANGE SELECTION
+            # ========================================
+            st.header("📊 Year to Date Analysis Report")
+            st.caption("Select start year and end year to view analysis")
+
+            # Initialize session state for selected years
+            if "start_year_tab2" not in st.session_state:
+                st.session_state.start_year_tab2 = datetime.today().year
+            
+            if "end_year_tab2" not in st.session_state:
+                st.session_state.end_year_tab2 = datetime.today().year
+            
+            # Initialize flag to track if report should be generated
+            if "generate_report_tab2" not in st.session_state:
+                st.session_state.generate_report_tab2 = False
+
+            # Create columns for Year selection
+            col1, col2, col3 = st.columns([1, 1, 1])
+                        
+            with col1:
+                # Start Year selector
+                current_year = datetime.today().year
+                start_year = st.selectbox(
+                    "Start Year",
+                    options=list(range(current_year - 10, current_year + 1)),
+                    index=list(range(current_year - 10, current_year + 1)).index(
+                        st.session_state.start_year_tab2
+                    ),
+                    key="start_year_selector_tab2",
+                    help="Choose the starting year"
+                )
+
+            with col2:
+                # End Year selector
+                end_year = st.selectbox(
+                    "End Year",
+                    options=list(range(current_year - 10, current_year + 1)),
+                    index=list(range(current_year - 10, current_year + 1)).index(
+                        st.session_state.end_year_tab2
+                    ),
+                    key="end_year_selector_tab2",
+                    help="Choose the ending year"
+                )
+
+            with col3:
+                st.write("")  # Spacing
+                st.write("")  # Spacing
+                if st.button(
+                    "📊 Generate Report",
+                    type="primary",
+                    use_container_width=True,
+                    key="generate_report_button"
+                ):
+                    # Validate year range
+                    if start_year > end_year:
+                        st.error("❌ Start year cannot be greater than end year!")
+                    else:
+                        # Update session state when button is clicked
+                        st.session_state.start_year_tab2 = start_year
+                        st.session_state.end_year_tab2 = end_year
+                        st.session_state.generate_report_tab2 = True
+
+            # Display selected range
+            year_range = f"{st.session_state.start_year_tab2} to {st.session_state.end_year_tab2}"
+            st.info(
+                f"📅 Selected Period: **{year_range}** | "
+                f"Duration: **{st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1} year(s)**"
+            )
+
+            # Only generate report if button was clicked
+            if st.session_state.generate_report_tab2:
+                with st.spinner("Loading data..."):
+                    # Call your function with start_year and end_year
+                    df, error, status_code = fetch_generate_year_wise_open_close_pivot_report(
+                        st.session_state.start_year_tab2,
+                        st.session_state.end_year_tab2
+                    )
                 
+                if error is None and df is not None:
+                    st.success("✅ Report generated successfully!")
+                    
+                    # Display metrics if you want
+                    col_m1, col_m2, col_m3 = st.columns(3)
+                    with col_m1:
+                        st.metric("Total Records", len(df))
+                    with col_m2:
+                        st.metric("Years Covered", st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1)
+                    with col_m3:
+                        st.metric("Columns", len(df.columns))
+                    
+                    # Display dataframe
+                    st.dataframe(df, use_container_width=True, height=400)
+                    logger.info(f"Tab 2: Year-to-date report generated | range={year_range}")
+                    
+                    # Store last generated time
+                    st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Reset flag after successful generation
+                    st.session_state.generate_report_tab2 = False
+                    
+                else:
+                    if status_code:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                        logger.error(f"Tab 2: API request failed | status_code={status_code}")
+                    else:
+                        st.error(f"❌ Error: {error}")
+                        logger.error(f"Tab 2: Error - {error}")
+                    
+                    # Reset flag after error
+                    st.session_state.generate_report_tab2 = False
+
+            # Show last loaded timestamp
+            if "last_report_time_tab2" in st.session_state:
+                st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
+            else:
+                st.caption("Last loaded: Not generated yet")
                 
+
+            st.divider()
+            # ========================================
+            # SECTION 1: YEAR AND QUARTER SELECTION
+            # ========================================
+            st.header("📊 Year and Quarter Analysis Report")
+            st.caption("Select start year/quarter and end year/quarter to view analysis")
+
+            # Initialize session state for selected years and quarters
+            if "start_year_tab2" not in st.session_state:
+                st.session_state.start_year_tab2 = datetime.today().year
+            
+            if "end_year_tab2" not in st.session_state:
+                st.session_state.end_year_tab2 = datetime.today().year
+            
+            if "start_quarter_tab2" not in st.session_state:
+                st.session_state.start_quarter_tab2 = 1
+            
+            if "end_quarter_tab2" not in st.session_state:
+                st.session_state.end_quarter_tab2 = 4
+            
+            # Initialize flag to track if report should be generated
+            if "generate_report_tab2" not in st.session_state:
+                st.session_state.generate_report_tab2 = False
+
+            # Quarter mapping
+            quarters = {
+                1: "Q1 (Jan-Mar)",
+                2: "Q2 (Apr-Jun)",
+                3: "Q3 (Jul-Sep)",
+                4: "Q4 (Oct-Dec)"
+            }
+
+            # Create columns for Start and End selection
+            st.subheader("Start Period")
+            col1, col2 = st.columns([1, 1])
+                        
+            with col1:
+                # Start Year selector
+                current_year = datetime.today().year
+                start_year = st.selectbox(
+                    "Start Year",
+                    options=list(range(current_year - 10, current_year + 1)),
+                    index=list(range(current_year - 10, current_year + 1)).index(
+                        st.session_state.start_year_tab2
+                    ),
+                    key="start_year_selector",
+                    help="Choose the starting year"
+                )
+
+            with col2:
+                # Start Quarter selector
+                start_quarter = st.selectbox(
+                    "Start Quarter",
+                    options=list(quarters.keys()),
+                    format_func=lambda x: quarters[x],
+                    index=st.session_state.start_quarter_tab2 - 1,
+                    key="start_quarter_selector_tab2",
+                    help="Choose the starting quarter"
+                )
+
+            st.subheader("End Period")
+            col3, col4 = st.columns([1, 1])
+
+            with col3:
+                # End Year selector
+                end_year = st.selectbox(
+                    "End Year",
+                    options=list(range(current_year - 10, current_year + 1)),
+                    index=list(range(current_year - 10, current_year + 1)).index(
+                        st.session_state.end_year_tab2
+                    ),
+                    key="end_year_selector",
+                    help="Choose the ending year"
+                )
+
+            with col4:
+                # End Quarter selector
+                end_quarter = st.selectbox(
+                    "End Quarter",
+                    options=list(quarters.keys()),
+                    format_func=lambda x: quarters[x],
+                    index=st.session_state.end_quarter_tab2 - 1,
+                    key="end_quarter_selector",
+                    help="Choose the ending quarter"
+                )
+
+            # Generate Report Button
+            col_button = st.columns([1, 1, 1])
+            with col_button[1]:
+                if st.button(
+                    "📊 Generate Report",
+                    type="primary",
+                    use_container_width=True,
+                    key="generate_report_button_t"
+                ):
+                    # Validate quarter range
+                    start_period = start_year * 10 + start_quarter
+                    end_period = end_year * 10 + end_quarter
+                    
+                    if start_period > end_period:
+                        st.error("❌ Start period cannot be greater than end period!")
+                    else:
+                        # Update session state when button is clicked
+                        st.session_state.start_year_tab2 = start_year
+                        st.session_state.end_year_tab2 = end_year
+                        st.session_state.start_quarter_tab2 = start_quarter
+                        st.session_state.end_quarter_tab2 = end_quarter
+                        st.session_state.generate_report_tab2 = True
+
+            # Display selected range
+            period_range = (
+                f"{quarters[st.session_state.start_quarter_tab2]} {st.session_state.start_year_tab2} "
+                f"to {quarters[st.session_state.end_quarter_tab2]} {st.session_state.end_year_tab2}"
+            )
+            
+            # Calculate total quarters
+            total_quarters = (
+                (st.session_state.end_year_tab2 - st.session_state.start_year_tab2) * 4 + 
+                (st.session_state.end_quarter_tab2 - st.session_state.start_quarter_tab2 + 1)
+            )
+            
+            st.info(
+                f"📅 Selected Period: **{period_range}** | "
+                f"Duration: **{total_quarters} quarter(s)**"
+            )
+
+            # Only generate report if button was clicked
+            if st.session_state.generate_report_tab2:
+                with st.spinner("Loading data..."):
+                    # Call your function with start/end year and quarter
+                    df, error, status_code = fetch_generate_quarter_wise_agging_pivot_report(
+                        st.session_state.start_year_tab2,
+                        st.session_state.start_quarter_tab2,
+                        st.session_state.end_year_tab2,
+                        st.session_state.end_quarter_tab2
+                    )
+                
+                if error is None and df is not None:
+                    st.success("✅ Report generated successfully!")
+                    
+                    # Display metrics
+                    col_m1, col_m2, col_m3 = st.columns(3)
+                    with col_m1:
+                        st.metric("Total Records", len(df))
+                    with col_m2:
+                        st.metric("Quarters Covered", total_quarters)
+                    with col_m3:
+                        st.metric("Columns", len(df.columns))
+                    
+                    # Display dataframe
+                    st.dataframe(df, use_container_width=True, height=400)
+                    logger.info(
+                        f"Tab 2: Quarterly report generated | "
+                        f"start={st.session_state.start_quarter_tab2}-{st.session_state.start_year_tab2} | "
+                        f"end={st.session_state.end_quarter_tab2}-{st.session_state.end_year_tab2}"
+                    )
+                    
+                    # Store last generated time
+                    st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Reset flag after successful generation
+                    st.session_state.generate_report_tab2 = False
+                    
+                else:
+                    if status_code:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                        logger.error(f"Tab 2: API request failed | status_code={status_code}")
+                    else:
+                        st.error(f"❌ Error: {error}")
+                        logger.error(f"Tab 2: Error - {error}")
+                    
+                    # Reset flag after error
+                    st.session_state.generate_report_tab2 = False
+
+            # Show last loaded timestamp
+            if "last_report_time_tab2" in st.session_state:
+                st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
+            else:
+                st.caption("Last loaded: Not generated yet")
+
+
             
 
             st.divider()
@@ -202,65 +503,65 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 return df
 
             # Filter monthly data (cached)
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_month_data(df, selected_month):
                 """Filter data for selected month"""
                 return df[df['DATE'].dt.to_period('M') == selected_month]
 
             # Reports now take month_df directly (no file read)
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def generate_complaint_report(month_df):
                 return month_df['COMPLAINT TYPE'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def generate_date_report(month_df):
                 return month_df['DATE'].value_counts().sort_index()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def generate_shift_duty_report(month_df):
                 return month_df['SHIFT DUTY'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def generate_monthly_qrc_data(month_df):
                 return month_df['QUERY/REQUEST/COMPLAINT'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_section_data(month_df):
                 return month_df['SECTION'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_subdivision_data(month_df):
                 return month_df['SUB-DIVISION'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_circle_data(month_df):
                 return month_df['CIRCLE'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_consumer_number_data(month_df):
                 return month_df['CONSUMER NUMBER'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_mobile_number_data(month_df):
                 return month_df['MOBILE NUMB'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_dept_data(month_df):
                 return month_df['DEPT'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_status_data(month_df):
                 return month_df['CLOSED/OPEN'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_pscc_data(month_df):
                 return month_df['PSCC/FG/TO'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_minute_data(month_df):
                 return month_df['MINUTE'].value_counts()
 
-            @st.cache_data(ttl=600,show_spinner=True)
+            @st.cache_data(ttl=600)
             def get_monthly_remarks_analysis(month_df):
                 """Analyze REMARKS column for patterns"""
                 # Create a copy to avoid modifying cached data
@@ -736,6 +1037,10 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 - **MOBILE NUMB**: Mobile numbers
                 """)
             
+            st.header("📊 Year Wise Complaint Analysis Dashboard")
+            st.divider()
+            # Add your Streamlit code for Tab 2 here
+
 
 
     except Exception as e:

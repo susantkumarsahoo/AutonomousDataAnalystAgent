@@ -373,3 +373,65 @@ def generate_month_wise_open_clode_pivot_report(dataset_path: str,selected_month
     pivot_dict = pivot.to_dict()
 
     return pivot_dict
+
+def generate_year_wise_open_clode_pivot_report(dataset_path: str,selected_year: str) -> dict:
+    # Load dataset
+    new_df = pd.read_excel(dataset_path)
+
+    # Clean and format columns
+    new_df['DATE'] = pd.to_datetime(new_df['DATE'])
+    df = new_df[new_df['DATE'].dt.to_period('Y') == selected_year]
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+    df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
+    df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()
+
+    pivot = pd.pivot_table(
+        df,
+        values='DATE',
+        index=['COMPLAINT TYPE'],          # keep this index
+        columns=['DEPT','CLOSED/OPEN'],
+        aggfunc='count',
+        fill_value=0,
+        margins=True,
+        margins_name='Grand Total',
+        observed=False
+    )
+
+    # Flatten MultiIndex columns into single strings
+    pivot.columns = [f"{dept}_{status}" for dept, status in pivot.columns]
+
+    # Convert pivot table to dictionary format, preserving index
+    pivot_dict = pivot.to_dict()
+
+    return pivot_dict
+
+def generate_quarter_wise_open_clode_pivot_report(dataset_path: str,selected_year: str) -> dict:
+    # Load dataset
+    new_df = pd.read_excel(dataset_path)
+
+    # Clean and format columns
+    new_df['DATE'] = pd.to_datetime(new_df['DATE'])
+    df = new_df[new_df['DATE'].dt.to_period('Q') == selected_year]
+    df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
+    df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
+    df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()
+
+    pivot = pd.pivot_table(
+        df,
+        values='DATE',
+        index=['COMPLAINT TYPE'],          # keep this index
+        columns=['DEPT','CLOSED/OPEN'],
+        aggfunc='count',
+        fill_value=0,
+        margins=True,
+        margins_name='Grand Total',
+        observed=False
+    )
+
+    # Flatten MultiIndex columns into single strings
+    pivot.columns = [f"{dept}_{status}" for dept, status in pivot.columns]
+
+    # Convert pivot table to dictionary format, preserving index
+    pivot_dict = pivot.to_dict()
+
+    return pivot_dict

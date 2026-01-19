@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 # =====================================================
 
 try:
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_open_complaint_pivot():
         """Fetch open complaint pivot data from API - cached"""
         try:
@@ -52,7 +52,7 @@ try:
             return None, error_msg, None
 
 
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_open_close_complaint_pivot():
         """Fetch open/close complaint pivot data from API - cached"""
         try:
@@ -72,7 +72,7 @@ try:
             return None, error_msg, None
 
 
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_agging_open_pivot():
         """Fetch agging open pivot data from API - cached"""
         try:
@@ -92,7 +92,7 @@ try:
             return None, error_msg, None
 
 
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_agging_open_close_pivot():
         """Fetch agging open/close pivot data from API - cached"""
         try:
@@ -112,7 +112,7 @@ try:
             return None, error_msg, None
         
 
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_open_close_complaint_report():
         """Fetch open/close complaint report data from API - cached"""
         try:
@@ -132,7 +132,7 @@ try:
             return None, error_msg, None
         
 
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_all_agging_complaint_report():
         """Fetch all agging complaint report data from API - cached"""
         try:
@@ -151,7 +151,7 @@ try:
             logger.error(f"Error fetching all agging complaint report: {error_msg}")
             return None, error_msg, None
     
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_close_power_outage_duration(dataset_path, selected_date):
         """Fetch open/close complaint report data - cached"""
         try:
@@ -162,7 +162,7 @@ try:
             logger.error(f"Error fetching open/close complaint report: {error_msg}")
             return None
         
-    @st.cache_data(ttl=600,show_spinner=True)
+    @st.cache_data(ttl=600)
     def fetch_generate_month_wise_open_close_pivot_report(selected_month: str):
         """Fetch month wise open/close pivot report data from API - cached"""
         try:
@@ -182,9 +182,56 @@ try:
             logger.error(f"Error fetching month wise open/close pivot report: {error_msg}")
             return None, error_msg, None
         
+    @st.cache_data(ttl=600)
+    def fetch_generate_quarter_wise_agging_pivot_report(selected_month: str):    
+        """Fetch quarter wise agging pivot report data from API - cached"""
+        try:
+            # Pass selected_month as query parameter
+            response = fastapi_api_request_url(f"/quarter_wise_agging_pivot_report?selected_month={selected_month}")
+            if response is not None and response.status_code == 200:
+                response_data = response.json()
+                if response_data:
+                    return pd.DataFrame(response_data), None, response.status_code
+                else:
+                    return None, "No data available", response.status_code
+            else:
+                status = response.status_code if response else None
+                return None, f"API error: {status}", status
+        except Exception as e:
+            error_msg = str(CustomException(e, sys))
+            logger.error(f"Error fetching quarter wise agging pivot report: {error_msg}")
+            return None, error_msg, None
+
+
+    @st.cache_data(ttl=600)
+    def fetch_generate_year_wise_open_close_pivot_report(selected_year: str):
+        """Fetch year wise open/close pivot report data from API - cached"""
+        try:
+            # Pass selected_year as query parameter
+            response = fastapi_api_request_url(f"/year_wise_open_close_pivot_report?selected_year={selected_year}")
+            if response is not None and response.status_code == 200:
+                response_data = response.json()
+                if response_data:
+                    return pd.DataFrame(response_data), None, response.status_code
+                else:
+                    return None, "No data available", response.status_code
+            else:
+                status = response.status_code if response else None
+                return None, f"API error: {status}", status
+        except Exception as e:
+            error_msg = str(CustomException(e, sys))
+            logger.error(f"Error fetching year wise open/close pivot report: {error_msg}")
+            return None, error_msg, None
+
+
+
+
+
+
 except Exception as e:
     error_msg = str(CustomException(e, sys))
     logger.error(f"Unhandled error in Streamlit dashboard Tab1 | error={error_msg}")
     st.error("❌ An unexpected error occurred while loading the dashboard.")
     with st.expander("Show error details"):
      st.code(error_msg)
+

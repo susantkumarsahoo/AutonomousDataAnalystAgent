@@ -28,7 +28,9 @@ from ml_project.backend_api.fastapi_analysis_helper import (
     open_close_complaint_report,
     generate_all_agging_complaint_report,
     #Tab 2 Options
-    generate_month_wise_open_clode_pivot_report)
+    generate_month_wise_open_clode_pivot_report,
+    generate_year_wise_open_clode_pivot_report,
+    generate_quarter_wise_open_clode_pivot_report)
 
 logger = get_logger(__name__)
 
@@ -531,6 +533,106 @@ async def get_generate_month_wise_open_close_pivot_report(selected_month: str):
         error_msg = str(CustomException(e, sys))
         logger.error(f"Month wise open/close report error | month={selected_month} | error={error_msg}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/quarter_wise_open_close_report", tags=["Analytics"])    
+async def get_generate_quarter_wise_open_close_pivot_report(selected_quarter: str):
+    """
+    Get quarter wise open/close complaints pivot report
+    
+    Parameters:
+    -----------
+    selected_quarter : str
+        Quarter in format 'YYYY-MM' (e.g., '2024-01')
+    """
+    try:
+        logger.info(f"generate_quarter_wise_open_close_pivot_report endpoint accessed | quarter={selected_quarter}")
+
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
+
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
+        if not os.path.exists(dataset_path):
+            logger.warning(f"Dataset not found | path={dataset_path}")            
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Run CPU-intensive task in thread pool
+        response_dict = await run_in_threadpool(
+            generate_quarter_wise_open_clode_pivot_report, 
+            dataset_path,
+            selected_quarter
+        )
+
+        logger.info(f"Quarter wise open/close report generated | quarter={selected_quarter} | records={len(response_dict)}")
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Quarter wise open/close report error | quarter={selected_quarter} | error={error_msg}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"      
+        )
+
+
+
+@app.get("/year_wise_open_close_pivot_report", tags=["Analytics"])    
+async def get_generate_year_wise_open_close_pivot_report(selected_year: str):
+    """
+    Get year wise open/close complaints pivot report
+    
+    Parameters:
+    -----------
+    selected_year : str
+        Year in format 'YYYY' (e.g., '2024')
+    """
+    try:
+        logger.info(f"generate_year_wise_open_close_pivot_report endpoint accessed | year={selected_year}")
+
+        try:
+            dataset_path = get_dataset_path("data/raw_path")
+        except DatasetNotFoundError:
+            logger.error("Dataset not found")
+            raise HTTPException(status_code=404, detail="Dataset not found. Please upload data first.")
+
+        # Check if dataset_path is None or empty
+        if dataset_path is None or not dataset_path:
+            logger.error("Dataset path is not configured")
+            raise HTTPException(status_code=500, detail="Dataset path not configured")
+
+        # Check if the path exists
+        if not os.path.exists(dataset_path):
+            logger.warning(f"Dataset not found | path={dataset_path}")
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Run CPU-intensive task in thread pool
+        response_dict = await run_in_threadpool(
+            generate_year_wise_open_clode_pivot_report, 
+            dataset_path,
+            selected_year
+        )
+
+        logger.info(f"Year wise open/close report generated | year={selected_year} | records={len(response_dict)}")
+        return JSONResponse(content=response_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(CustomException(e, sys))
+        logger.error(f"Year wise open/close report error | year={selected_year} | error={error_msg}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+
 
 
 # -----------------------------------------------------------------------------
