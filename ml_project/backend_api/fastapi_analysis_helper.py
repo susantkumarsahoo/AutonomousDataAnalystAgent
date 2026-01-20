@@ -374,21 +374,41 @@ def generate_month_wise_open_clode_pivot_report(dataset_path: str,selected_month
 
     return pivot_dict
 
-def generate_year_wise_open_clode_pivot_report(dataset_path: str,selected_year: str) -> dict:
+
+def generate_quarter_wise_open_close_pivot_report(
+    dataset_path: str,
+    start_year: str,
+    start_quarter: str,
+    end_year: str,
+    end_quarter: str
+) -> dict:
+    # ... rest of your code
     # Load dataset
     new_df = pd.read_excel(dataset_path)
 
     # Clean and format columns
     new_df['DATE'] = pd.to_datetime(new_df['DATE'])
-    df = new_df[new_df['DATE'].dt.to_period('Y') == selected_year]
+    
+    # Convert DATE to quarterly period
+    new_df['QUARTER'] = new_df['DATE'].dt.to_period('Q')
+    
+    # Build start and end periods
+    start_period = pd.Period(f"{start_year}Q{start_quarter}", freq='Q')
+    end_period   = pd.Period(f"{end_year}Q{end_quarter}", freq='Q')
+    
+    # Filter rows within the range
+    df = new_df[(new_df['QUARTER'] >= start_period) & (new_df['QUARTER'] <= end_period)].copy()
+
+    # Clean text columns
     df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
     df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
     df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()
 
+    # Pivot table
     pivot = pd.pivot_table(
         df,
         values='DATE',
-        index=['COMPLAINT TYPE'],          # keep this index
+        index=['COMPLAINT TYPE'],
         columns=['DEPT','CLOSED/OPEN'],
         aggfunc='count',
         fill_value=0,
@@ -405,13 +425,19 @@ def generate_year_wise_open_clode_pivot_report(dataset_path: str,selected_year: 
 
     return pivot_dict
 
-def generate_quarter_wise_open_clode_pivot_report(dataset_path: str,selected_year: str) -> dict:
+
+def generate_finance_year_wise_open_clode_pivot_report(dataset_path: str, start_year: str, start_date: str, end_year: str, end_date: str) -> dict:
     # Load dataset
     new_df = pd.read_excel(dataset_path)
 
-    # Clean and format columns
+    # Clean and format columns  
     new_df['DATE'] = pd.to_datetime(new_df['DATE'])
-    df = new_df[new_df['DATE'].dt.to_period('Q') == selected_year]
+    
+    # Filter by date range
+    start_dt = pd.to_datetime(f"{start_year}-{start_date}")
+    end_dt = pd.to_datetime(f"{end_year}-{end_date}")
+    df = new_df[(new_df['DATE'] >= start_dt) & (new_df['DATE'] <= end_dt)]
+    
     df['COMPLAINT TYPE'] = df['COMPLAINT TYPE'].astype(str).str.strip().str.title()
     df['DEPT'] = df['DEPT'].astype(str).str.strip().str.title()
     df['CLOSED/OPEN'] = df['CLOSED/OPEN'].astype(str).str.strip().str.title()

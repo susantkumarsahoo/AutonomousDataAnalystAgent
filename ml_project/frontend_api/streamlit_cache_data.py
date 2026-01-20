@@ -182,46 +182,59 @@ try:
             logger.error(f"Error fetching month wise open/close pivot report: {error_msg}")
             return None, error_msg, None
         
+
     @st.cache_data(ttl=600)
-    def fetch_generate_quarter_wise_agging_pivot_report(selected_month: str):    
+    def fetch_generate_quarter_wise_agging_pivot_report(
+        start_year: str,
+        start_quarter: str,
+        end_year: str,
+        end_quarter: str
+    ):    
         """Fetch quarter wise agging pivot report data from API - cached"""
         try:
-            # Pass selected_month as query parameter
-            response = fastapi_api_request_url(f"/quarter_wise_agging_pivot_report?selected_month={selected_month}")
+            # Remove dataset_path from query parameters - it's handled by the API
+            response = fastapi_api_request_url(
+                f"/quarter_wise_open_close_report?start_year={start_year}&start_quarter={start_quarter}&end_year={end_year}&end_quarter={end_quarter}"
+            )
+            
             if response is not None and response.status_code == 200:
                 response_data = response.json()
                 if response_data:
-                    return pd.DataFrame(response_data), None, response.status_code
+                    # Convert the dictionary back to DataFrame
+                    df = pd.DataFrame.from_dict(response_data)
+                    return df, None, response.status_code
                 else:
                     return None, "No data available", response.status_code
             else:
                 status = response.status_code if response else None
                 return None, f"API error: {status}", status
+                
         except Exception as e:
             error_msg = str(CustomException(e, sys))
             logger.error(f"Error fetching quarter wise agging pivot report: {error_msg}")
             return None, error_msg, None
 
 
+
     @st.cache_data(ttl=600)
-    def fetch_generate_year_wise_open_close_pivot_report(selected_year: str):
-        """Fetch year wise open/close pivot report data from API - cached"""
-        try:
-            # Pass selected_year as query parameter
-            response = fastapi_api_request_url(f"/year_wise_open_close_pivot_report?selected_year={selected_year}")
-            if response is not None and response.status_code == 200:
-                response_data = response.json()
-                if response_data:
-                    return pd.DataFrame(response_data), None, response.status_code
+    def fetch_generate_finance_year_wise_open_close_pivot_report(start_year: str, start_date: str, end_year: str, end_date: str):
+            """Fetch year wise open/close pivot report data from API - cached"""
+            try:
+                # Pass parameters as query parameters
+                response = fastapi_api_request_url(f"/year_wise_open_close_pivot_report?start_year={start_year}&start_date={start_date}&end_year={end_year}&end_date={end_date}")
+                if response is not None and response.status_code == 200:
+                    response_data = response.json()
+                    if response_data:
+                        return pd.DataFrame(response_data), None, response.status_code
+                    else:
+                        return None, "No data available", response.status_code
                 else:
-                    return None, "No data available", response.status_code
-            else:
-                status = response.status_code if response else None
-                return None, f"API error: {status}", status
-        except Exception as e:
-            error_msg = str(CustomException(e, sys))
-            logger.error(f"Error fetching year wise open/close pivot report: {error_msg}")
-            return None, error_msg, None
+                    status = response.status_code if response else None
+                    return None, f"API error: {status}", status
+            except Exception as e:
+                error_msg = str(CustomException(e, sys))
+                logger.error(f"Error fetching year wise open/close pivot report: {error_msg}")
+                return None, error_msg, None
 
 
 

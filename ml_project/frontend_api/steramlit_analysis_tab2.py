@@ -20,7 +20,12 @@ from ml_project.frontend_api.streamlit_analysis_helper import*
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
-from ml_project.frontend_api.streamlit_cache_data import fetch_generate_month_wise_open_close_pivot_report,fetch_generate_quarter_wise_agging_pivot_report,fetch_generate_year_wise_open_close_pivot_report
+from ml_project.frontend_api.streamlit_cache_data import (
+fetch_generate_month_wise_open_close_pivot_report,
+fetch_generate_quarter_wise_agging_pivot_report,
+fetch_generate_finance_year_wise_open_close_pivot_report,
+
+)
 from ml_project.frontend_api.streamlit_analysis_helper import (
 generate_month_wise_open_clode_pivot_report,
 generate_complaint_report,
@@ -181,125 +186,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
             else:
                 st.caption("Last loaded: Not generated yet")
 
-            st.divider()
-            # ========================================
-            # SECTION 1: YEAR TO DATE RANGE SELECTION
-            # ========================================
-            st.header("📊 Year to Date Analysis Report")
-            st.caption("Select start year and end year to view analysis")
 
-            # Initialize session state for selected years
-            if "start_year_tab2" not in st.session_state:
-                st.session_state.start_year_tab2 = datetime.today().year
-            
-            if "end_year_tab2" not in st.session_state:
-                st.session_state.end_year_tab2 = datetime.today().year
-            
-            # Initialize flag to track if report should be generated
-            if "generate_report_tab2" not in st.session_state:
-                st.session_state.generate_report_tab2 = False
-
-            # Create columns for Year selection
-            col1, col2, col3 = st.columns([1, 1, 1])
-                        
-            with col1:
-                # Start Year selector
-                current_year = datetime.today().year
-                start_year = st.selectbox(
-                    "Start Year",
-                    options=list(range(current_year - 10, current_year + 1)),
-                    index=list(range(current_year - 10, current_year + 1)).index(
-                        st.session_state.start_year_tab2
-                    ),
-                    key="start_year_selector_tab2",
-                    help="Choose the starting year"
-                )
-
-            with col2:
-                # End Year selector
-                end_year = st.selectbox(
-                    "End Year",
-                    options=list(range(current_year - 10, current_year + 1)),
-                    index=list(range(current_year - 10, current_year + 1)).index(
-                        st.session_state.end_year_tab2
-                    ),
-                    key="end_year_selector_tab2",
-                    help="Choose the ending year"
-                )
-
-            with col3:
-                st.write("")  # Spacing
-                st.write("")  # Spacing
-                if st.button(
-                    "📊 Generate Report",
-                    type="primary",
-                    use_container_width=True,
-                    key="generate_report_button"
-                ):
-                    # Validate year range
-                    if start_year > end_year:
-                        st.error("❌ Start year cannot be greater than end year!")
-                    else:
-                        # Update session state when button is clicked
-                        st.session_state.start_year_tab2 = start_year
-                        st.session_state.end_year_tab2 = end_year
-                        st.session_state.generate_report_tab2 = True
-
-            # Display selected range
-            year_range = f"{st.session_state.start_year_tab2} to {st.session_state.end_year_tab2}"
-            st.info(
-                f"📅 Selected Period: **{year_range}** | "
-                f"Duration: **{st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1} year(s)**"
-            )
-
-            # Only generate report if button was clicked
-            if st.session_state.generate_report_tab2:
-                with st.spinner("Loading data..."):
-                    # Call your function with start_year and end_year
-                    df, error, status_code = fetch_generate_year_wise_open_close_pivot_report(
-                        st.session_state.start_year_tab2,
-                        st.session_state.end_year_tab2
-                    )
-                
-                if error is None and df is not None:
-                    st.success("✅ Report generated successfully!")
-                    
-                    # Display metrics if you want
-                    col_m1, col_m2, col_m3 = st.columns(3)
-                    with col_m1:
-                        st.metric("Total Records", len(df))
-                    with col_m2:
-                        st.metric("Years Covered", st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1)
-                    with col_m3:
-                        st.metric("Columns", len(df.columns))
-                    
-                    # Display dataframe
-                    st.dataframe(df, use_container_width=True, height=400)
-                    logger.info(f"Tab 2: Year-to-date report generated | range={year_range}")
-                    
-                    # Store last generated time
-                    st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-                    
-                    # Reset flag after successful generation
-                    st.session_state.generate_report_tab2 = False
-                    
-                else:
-                    if status_code:
-                        st.error(f"❌ Failed to fetch data. Status code: {status_code}")
-                        logger.error(f"Tab 2: API request failed | status_code={status_code}")
-                    else:
-                        st.error(f"❌ Error: {error}")
-                        logger.error(f"Tab 2: Error - {error}")
-                    
-                    # Reset flag after error
-                    st.session_state.generate_report_tab2 = False
-
-            # Show last loaded timestamp
-            if "last_report_time_tab2" in st.session_state:
-                st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
-            else:
-                st.caption("Last loaded: Not generated yet")
-                
 
             st.divider()
             # ========================================
@@ -311,16 +198,16 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
             # Initialize session state for selected years and quarters
             if "start_year_tab2" not in st.session_state:
                 st.session_state.start_year_tab2 = datetime.today().year
-            
+
             if "end_year_tab2" not in st.session_state:
                 st.session_state.end_year_tab2 = datetime.today().year
-            
+
             if "start_quarter_tab2" not in st.session_state:
                 st.session_state.start_quarter_tab2 = 1
-            
+
             if "end_quarter_tab2" not in st.session_state:
                 st.session_state.end_quarter_tab2 = 4
-            
+
             # Initialize flag to track if report should be generated
             if "generate_report_tab2" not in st.session_state:
                 st.session_state.generate_report_tab2 = False
@@ -415,13 +302,13 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 f"{quarters[st.session_state.start_quarter_tab2]} {st.session_state.start_year_tab2} "
                 f"to {quarters[st.session_state.end_quarter_tab2]} {st.session_state.end_year_tab2}"
             )
-            
+
             # Calculate total quarters
             total_quarters = (
                 (st.session_state.end_year_tab2 - st.session_state.start_year_tab2) * 4 + 
                 (st.session_state.end_quarter_tab2 - st.session_state.start_quarter_tab2 + 1)
             )
-            
+
             st.info(
                 f"📅 Selected Period: **{period_range}** | "
                 f"Duration: **{total_quarters} quarter(s)**"
@@ -432,10 +319,10 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 with st.spinner("Loading data..."):
                     # Call your function with start/end year and quarter
                     df, error, status_code = fetch_generate_quarter_wise_agging_pivot_report(
-                        st.session_state.start_year_tab2,
-                        st.session_state.start_quarter_tab2,
-                        st.session_state.end_year_tab2,
-                        st.session_state.end_quarter_tab2
+                        str(st.session_state.start_year_tab2),
+                        str(st.session_state.start_quarter_tab2),
+                        str(st.session_state.end_year_tab2),
+                        str(st.session_state.end_quarter_tab2)
                     )
                 
                 if error is None and df is not None:
@@ -450,8 +337,337 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     with col_m3:
                         st.metric("Columns", len(df.columns))
                     
+                    st.divider()
+                    
+                    # ========================================
+                    # VISUALIZATIONS SECTION
+                    # ========================================
+                    st.header("📈 Visual Analytics")
+                    
+                    # Prepare data for visualizations
+                    # Remove 'Grand Total' row for cleaner visualizations
+                    df_viz = df[df.index != 'Grand Total'].copy()
+                    
+                    # Extract department names and statuses from column names
+                    dept_status_cols = [col for col in df.columns if col != 'Grand Total']
+                    
+                    # Create tabs for different visualizations
+                    viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+                        "📊 Overview Dashboard", 
+                        "🔄 Open vs Closed", 
+                        "🏢 Department Analysis",
+                        "📋 Complaint Types"
+                    ])
+                    
+                    with viz_tab1:
+                        st.subheader("Overview Dashboard")
+                        
+                        # Calculate summary statistics
+                        total_complaints = df.loc['Grand Total', 'Grand Total'] if 'Grand Total' in df.columns else df.sum().sum()
+                        
+                        # Separate open and closed
+                        open_cols = [col for col in df.columns if 'Open' in col]
+                        closed_cols = [col for col in df.columns if 'Closed' in col]
+                        
+                        total_open = df_viz[open_cols].sum().sum() if open_cols else 0
+                        total_closed = df_viz[closed_cols].sum().sum() if closed_cols else 0
+                        
+                        # KPI Cards
+                        kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+                        with kpi_col1:
+                            st.metric("📊 Total Complaints", f"{int(total_complaints):,}")
+                        with kpi_col2:
+                            st.metric("🟢 Closed", f"{int(total_closed):,}", 
+                                    delta=f"{(total_closed/total_complaints*100):.1f}%" if total_complaints > 0 else "0%")
+                        with kpi_col3:
+                            st.metric("🔴 Open", f"{int(total_open):,}", 
+                                    delta=f"-{(total_open/total_complaints*100):.1f}%" if total_complaints > 0 else "0%",
+                                    delta_color="inverse")
+                        
+                        # Pie Chart: Open vs Closed
+                        col_pie1, col_pie2 = st.columns(2)
+                        
+                        with col_pie1:
+                            fig_pie = go.Figure(data=[go.Pie(
+                                labels=['Closed', 'Open'],
+                                values=[total_closed, total_open],
+                                hole=0.4,
+                                marker=dict(colors=['#00CC96', '#EF553B']),
+                                textinfo='label+percent+value',
+                                textfont_size=14
+                            )])
+                            fig_pie.update_layout(
+                                title=dict(text="Complaint Status Distribution", font=dict(size=18)),
+                                height=400,
+                                showlegend=True,
+                                legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5)
+                            )
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                        
+                        with col_pie2:
+                            # Department-wise total complaints
+                            dept_totals = {}
+                            for col in df.columns:
+                                if col != 'Grand Total' and '_' in col:
+                                    dept = col.split('_')[0]
+                                    if dept not in dept_totals:
+                                        dept_totals[dept] = 0
+                                    dept_totals[dept] += df_viz[col].sum()
+                            
+                            if dept_totals:
+                                fig_dept_pie = go.Figure(data=[go.Pie(
+                                    labels=list(dept_totals.keys()),
+                                    values=list(dept_totals.values()),
+                                    hole=0.4,
+                                    textinfo='label+percent',
+                                    textfont_size=12
+                                )])
+                                fig_dept_pie.update_layout(
+                                    title=dict(text="Department-wise Distribution", font=dict(size=18)),
+                                    height=400,
+                                    showlegend=True,
+                                    legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5)
+                                )
+                                st.plotly_chart(fig_dept_pie, use_container_width=True)
+                    
+                    with viz_tab2:
+                        st.subheader("🔄 Open vs Closed Analysis")
+                        
+                        # Stacked bar chart by complaint type
+                        complaint_types = df_viz.index.tolist()
+                        
+                        # Aggregate open and closed by complaint type
+                        open_data = []
+                        closed_data = []
+                        
+                        for idx in complaint_types:
+                            open_sum = df_viz.loc[idx, open_cols].sum() if open_cols else 0
+                            closed_sum = df_viz.loc[idx, closed_cols].sum() if closed_cols else 0
+                            open_data.append(open_sum)
+                            closed_data.append(closed_sum)
+                        
+                        fig_stacked = go.Figure()
+                        fig_stacked.add_trace(go.Bar(
+                            name='Closed',
+                            x=complaint_types,
+                            y=closed_data,
+                            marker_color='#00CC96',
+                            text=closed_data,
+                            textposition='inside',
+                            textfont=dict(color='white', size=11)
+                        ))
+                        fig_stacked.add_trace(go.Bar(
+                            name='Open',
+                            x=complaint_types,
+                            y=open_data,
+                            marker_color='#EF553B',
+                            text=open_data,
+                            textposition='inside',
+                            textfont=dict(color='white', size=11)
+                        ))
+                        
+                        fig_stacked.update_layout(
+                            title=dict(text="Complaints Status by Type", font=dict(size=20)),
+                            barmode='stack',
+                            xaxis_title="Complaint Type",
+                            yaxis_title="Number of Complaints",
+                            height=500,
+                            hovermode='x unified',
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                        )
+                        st.plotly_chart(fig_stacked, use_container_width=True)
+                        
+                        # Closure rate by complaint type
+                        closure_rates = []
+                        for i, ct in enumerate(complaint_types):
+                            total = closed_data[i] + open_data[i]
+                            rate = (closed_data[i] / total * 100) if total > 0 else 0
+                            closure_rates.append(rate)
+                        
+                        fig_closure = go.Figure()
+                        fig_closure.add_trace(go.Bar(
+                            x=complaint_types,
+                            y=closure_rates,
+                            marker=dict(
+                                color=closure_rates,
+                                colorscale='RdYlGn',
+                                showscale=True,
+                                colorbar=dict(title="Rate %")
+                            ),
+                            text=[f"{rate:.1f}%" for rate in closure_rates],
+                            textposition='outside'
+                        ))
+                        
+                        fig_closure.update_layout(
+                            title=dict(text="Closure Rate by Complaint Type", font=dict(size=20)),
+                            xaxis_title="Complaint Type",
+                            yaxis_title="Closure Rate (%)",
+                            yaxis=dict(range=[0, 105]),
+                            height=500,
+                            hovermode='x'
+                        )
+                        st.plotly_chart(fig_closure, use_container_width=True)
+                    
+                    with viz_tab3:
+                        st.subheader("🏢 Department-wise Analysis")
+                        
+                        # Create department comparison
+                        dept_open_closed = {}
+                        for col in df.columns:
+                            if col != 'Grand Total' and '_' in col:
+                                dept, status = col.rsplit('_', 1)
+                                if dept not in dept_open_closed:
+                                    dept_open_closed[dept] = {'Open': 0, 'Closed': 0}
+                                if 'Open' in status:
+                                    dept_open_closed[dept]['Open'] += df_viz[col].sum()
+                                elif 'Closed' in status:
+                                    dept_open_closed[dept]['Closed'] += df_viz[col].sum()
+                        
+                        if dept_open_closed:
+                            depts = list(dept_open_closed.keys())
+                            open_vals = [dept_open_closed[d]['Open'] for d in depts]
+                            closed_vals = [dept_open_closed[d]['Closed'] for d in depts]
+                            
+                            # Grouped bar chart
+                            fig_dept_grouped = go.Figure()
+                            fig_dept_grouped.add_trace(go.Bar(
+                                name='Open',
+                                x=depts,
+                                y=open_vals,
+                                marker_color='#EF553B',
+                                text=open_vals,
+                                textposition='outside'
+                            ))
+                            fig_dept_grouped.add_trace(go.Bar(
+                                name='Closed',
+                                x=depts,
+                                y=closed_vals,
+                                marker_color='#00CC96',
+                                text=closed_vals,
+                                textposition='outside'
+                            ))
+                            
+                            fig_dept_grouped.update_layout(
+                                title=dict(text="Department Performance: Open vs Closed", font=dict(size=20)),
+                                xaxis_title="Department",
+                                yaxis_title="Number of Complaints",
+                                barmode='group',
+                                height=500,
+                                hovermode='x unified',
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                            )
+                            st.plotly_chart(fig_dept_grouped, use_container_width=True)
+                            
+                            # Department efficiency heatmap
+                            dept_complaint_matrix = []
+                            for ct in complaint_types:
+                                row_data = []
+                                for dept in depts:
+                                    dept_cols = [col for col in df.columns if col.startswith(dept + '_')]
+                                    total = df_viz.loc[ct, dept_cols].sum() if dept_cols else 0
+                                    row_data.append(total)
+                                dept_complaint_matrix.append(row_data)
+                            
+                            fig_heatmap = go.Figure(data=go.Heatmap(
+                                z=dept_complaint_matrix,
+                                x=depts,
+                                y=complaint_types,
+                                colorscale='Blues',
+                                text=dept_complaint_matrix,
+                                texttemplate='%{text}',
+                                textfont={"size": 11},
+                                colorbar=dict(title="Count")
+                            ))
+                            
+                            fig_heatmap.update_layout(
+                                title=dict(text="Complaint Type vs Department Heatmap", font=dict(size=20)),
+                                xaxis_title="Department",
+                                yaxis_title="Complaint Type",
+                                height=500
+                            )
+                            st.plotly_chart(fig_heatmap, use_container_width=True)
+                    
+                    with viz_tab4:
+                        st.subheader("📋 Complaint Type Analysis")
+                        
+                        # Top complaint types
+                        complaint_totals = df_viz.sum(axis=1).sort_values(ascending=False)
+                        top_n = min(10, len(complaint_totals))
+                        
+                        fig_top = go.Figure()
+                        fig_top.add_trace(go.Bar(
+                            x=complaint_totals.head(top_n).values,
+                            y=complaint_totals.head(top_n).index,
+                            orientation='h',
+                            marker=dict(
+                                color=complaint_totals.head(top_n).values,
+                                colorscale='Viridis',
+                                showscale=True
+                            ),
+                            text=complaint_totals.head(top_n).values,
+                            textposition='outside'
+                        ))
+                        
+                        fig_top.update_layout(
+                            title=dict(text=f"Top {top_n} Complaint Types", font=dict(size=20)),
+                            xaxis_title="Total Complaints",
+                            yaxis_title="Complaint Type",
+                            height=500,
+                            yaxis=dict(autorange="reversed")
+                        )
+                        st.plotly_chart(fig_top, use_container_width=True)
+                        
+                        # Sunburst chart for hierarchical view
+                        sunburst_data = []
+                        for ct in complaint_types:
+                            for col in df.columns:
+                                if col != 'Grand Total' and '_' in col:
+                                    dept, status = col.rsplit('_', 1)
+                                    value = df_viz.loc[ct, col]
+                                    if value > 0:
+                                        sunburst_data.append({
+                                            'Complaint Type': ct,
+                                            'Department': dept,
+                                            'Status': status,
+                                            'Count': value
+                                        })
+                        
+                        if sunburst_data:
+                            df_sunburst = pd.DataFrame(sunburst_data)
+                            
+                            fig_sunburst = px.sunburst(
+                                df_sunburst,
+                                path=['Complaint Type', 'Department', 'Status'],
+                                values='Count',
+                                color='Count',
+                                color_continuous_scale='RdYlGn_r',
+                                title="Hierarchical View: Complaint Type → Department → Status"
+                            )
+                            fig_sunburst.update_layout(height=600)
+                            st.plotly_chart(fig_sunburst, use_container_width=True)
+                    
+                    st.divider()
+                    
+                    # ========================================
+                    # DATA TABLE SECTION
+                    # ========================================
+                    st.header("📋 Detailed Data Table")
+                    
+                    # Add download button
+                    col_download1, col_download2, col_download3 = st.columns([1, 1, 1])
+                    with col_download2:
+                        csv = df.to_csv(index=True).encode('utf-8')
+                        st.download_button(
+                            label="📥 Download CSV",
+                            data=csv,
+                            file_name=f"quarterly_report_{period_range.replace(' ', '_')}.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
+                    
                     # Display dataframe
                     st.dataframe(df, use_container_width=True, height=400)
+                    
                     logger.info(
                         f"Tab 2: Quarterly report generated | "
                         f"start={st.session_state.start_quarter_tab2}-{st.session_state.start_year_tab2} | "
@@ -485,6 +701,156 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
 
 
 
+            st.divider()
+            # ========================================
+            # SECTION 1: YEAR TO DATE RANGE SELECTION
+            # ========================================
+            st.header("📊 Finance Year Analysis Report")
+            st.caption("Select start year/date and end year/date to view analysis")
+
+            # Initialize session state for selected years and dates
+            if "start_year_tab2" not in st.session_state:
+                st.session_state.start_year_tab2 = datetime.today().year
+
+            if "end_year_tab2" not in st.session_state:
+                st.session_state.end_year_tab2 = datetime.today().year
+
+            if "start_date_tab2" not in st.session_state:
+                st.session_state.start_date_tab2 = "04-01"
+
+            if "end_date_tab2" not in st.session_state:
+                st.session_state.end_date_tab2 = "03-31"
+
+            # Initialize flag to track if report should be generated
+            if "generate_report_tab2" not in st.session_state:
+                st.session_state.generate_report_tab2 = False
+
+            # Create columns for Year selection
+            col1, col2, col3 = st.columns([1, 1, 1])
+                        
+            with col1:
+                # Start Year selector
+                current_year = datetime.today().year
+                start_year = st.selectbox(
+                    "Start Year",
+                    options=list(range(current_year - 10, current_year + 1)),
+                    index=list(range(current_year - 10, current_year + 1)).index(
+                        st.session_state.start_year_tab2
+                    ),
+                    key="start_year_selector_tab2",
+                    help="Choose the starting year"
+                )
+                
+                start_date_obj = st.date_input(
+                    "Start Date",
+                    value=datetime(start_year, 4, 1),  # Default April 1st
+                    key="start_date_selector_tab2",
+                    help="Choose the starting date"
+                )
+                start_date = start_date_obj.strftime("%m-%d")
+
+            with col2:
+                # End Year selector
+                end_year = st.selectbox(
+                    "End Year",
+                    options=list(range(current_year - 10, current_year + 1)),
+                    index=list(range(current_year - 10, current_year + 1)).index(
+                        st.session_state.end_year_tab2
+                    ),
+                    key="end_year_selector_tab2",
+                    help="Choose the ending year"
+                )
+                
+                end_date_obj = st.date_input(
+                    "End Date",
+                    value=datetime(end_year, 3, 31),  # Default March 31st
+                    key="end_date_selector_tab2",
+                    help="Choose the ending date"
+                )
+                end_date = end_date_obj.strftime("%m-%d")
+
+            with col3:
+                st.write("")  # Spacing
+                st.write("")  # Spacing
+                if st.button(
+                    "📊 Generate Report",
+                    type="primary",
+                    use_container_width=True,
+                    key="generate_report_button"
+                ):
+                    # Validate date range
+                    start_full_date = datetime.strptime(f"{start_year}-{start_date}", "%Y-%m-%d")
+                    end_full_date = datetime.strptime(f"{end_year}-{end_date}", "%Y-%m-%d")
+                    
+                    if start_full_date > end_full_date:
+                        st.error("❌ Start date cannot be greater than end date!")
+                    else:
+                        # Update session state when button is clicked
+                        st.session_state.start_year_tab2 = start_year
+                        st.session_state.end_year_tab2 = end_year
+                        st.session_state.start_date_tab2 = start_date
+                        st.session_state.end_date_tab2 = end_date
+                        st.session_state.generate_report_tab2 = True
+
+            # Display selected range
+            date_range = f"{st.session_state.start_year_tab2}-{st.session_state.start_date_tab2} to {st.session_state.end_year_tab2}-{st.session_state.end_date_tab2}"
+            st.info(f"📅 Selected Period: **{date_range}**")
+
+            # Only generate report if button was clicked
+            if st.session_state.generate_report_tab2:
+                with st.spinner("Loading data..."):
+                    # Call your function with dataset_path, start_year, start_date, end_year, end_date
+                    df, error, status_code = fetch_generate_finance_year_wise_open_close_pivot_report(
+                        str(st.session_state.start_year_tab2),
+                        st.session_state.start_date_tab2,
+                        str(st.session_state.end_year_tab2),
+                        st.session_state.end_date_tab2
+                    )
+                
+                if error is None and df is not None:
+                    st.success("✅ Report generated successfully!")
+                    
+                    # Display metrics if you want
+                    col_m1, col_m2, col_m3 = st.columns(3)
+                    with col_m1:
+                        st.metric("Total Records", len(df))
+                    with col_m2:
+                        years_covered = st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1
+                        st.metric("Years Covered", years_covered)
+                    with col_m3:
+                        st.metric("Columns", len(df.columns))
+                    
+                    # Display dataframe
+                    st.dataframe(df, use_container_width=True, height=400)
+                    logger.info(f"Tab 2: Finance year report generated | range={date_range}")
+                    
+                    # Store last generated time
+                    st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Reset flag after successful generation
+                    st.session_state.generate_report_tab2 = False
+                    
+                else:
+                    if status_code:
+                        st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                        logger.error(f"Tab 2: API request failed | status_code={status_code}")
+                    else:
+                        st.error(f"❌ Error: {error}")
+                        logger.error(f"Tab 2: Error - {error}")
+                    
+                    # Reset flag after error
+                    st.session_state.generate_report_tab2 = False
+
+            # Show last loaded timestamp
+            if "last_report_time_tab2" in st.session_state:
+                st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
+            else:
+                st.caption("Last loaded: Not generated yet")
+                
+
+
+
+
             # ===============================
             # SECTION 2: MONTH WISE OPEN/CLOSE COMPLAINTS PIVOT
             # ===============================
@@ -500,7 +866,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.session_state.dataset_path = None
 
             # Load and cache the Excel data ONCE
-            @st.cache_data(ttl=600, show_spinner=True)
+            @st.cache_data(ttl=600)
             def load_excel_data(file_path):
                 """Load and cache Excel data"""
                 df = pd.read_excel(file_path)
@@ -665,7 +1031,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
 
 
             # Main App
-            st.markdown("# 📊 Month Wise Complaint Analysis Dashboard")
+            st.markdown("## 📊 Month Wise Complaint Analysis Dashboard")
             st.markdown("### Comprehensive Analytics & Insights Platform")
 
             if dataset_path is not None:
@@ -677,7 +1043,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     df = load_excel_data(dataset_path)
                     
                     # Enhanced month and year selectors
-                    st.markdown("## 📅 Select Analysis Period")
+                    st.markdown("### 📅 Select Analysis Period")
                     col_month, col_year, col_space = st.columns([1, 1, 2])
                     with col_month:
                         month = st.selectbox(
@@ -1360,6 +1726,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 })
                                                 st.dataframe(time_stats, use_container_width=True, height=250)
                                     
+                                                                        # Tab 6: Advanced Filters
                                     # Tab 6: Advanced Filters
                                     with tab6:
                                         st.markdown("### 🔎 Advanced Data Filtering & Export")
@@ -1370,21 +1737,21 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                         with filter_col1:
                                             selected_complaint = st.multiselect(
                                                 "🔹 Complaint Type",
-                                                options=sorted(month_df['COMPLAINT TYPE'].unique()),
+                                                options=sorted(month_df['COMPLAINT TYPE'].dropna().unique()),
                                                 key='complaint_filter_tab6'
                                             )
                                         
                                         with filter_col2:
                                             selected_shift = st.multiselect(
                                                 "⏰ Shift Duty",
-                                                options=sorted(month_df['SHIFT DUTY'].unique()),
+                                                options=sorted(month_df['SHIFT DUTY'].dropna().unique()),
                                                 key='shift_filter_tab6'
                                             )
                                         
                                         with filter_col3:
                                             selected_status = st.multiselect(
                                                 "🔄 Status",
-                                                options=sorted(month_df['CLOSED/OPEN'].unique()),
+                                                options=sorted(month_df['CLOSED/OPEN'].dropna().unique()),
                                                 key='status_filter_tab6'
                                             )
                                         
@@ -1393,21 +1760,21 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                         with filter_col4:
                                             selected_dept = st.multiselect(
                                                 "🏛️ Department",
-                                                options=sorted(month_df['DEPT'].unique()),
+                                                options=sorted(month_df['DEPT'].dropna().unique()),
                                                 key='dept_filter_tab6'
                                             )
                                         
                                         with filter_col5:
                                             selected_section = st.multiselect(
                                                 "🏢 Section",
-                                                options=sorted(month_df['SECTION'].unique()),
+                                                options=sorted(month_df['SECTION'].dropna().unique()),
                                                 key='section_filter_tab6'
                                             )
                                         
                                         with filter_col6:
                                             selected_circle = st.multiselect(
                                                 "🔵 Circle",
-                                                options=sorted(month_df['CIRCLE'].unique()),
+                                                options=sorted(month_df['CIRCLE'].dropna().unique()),
                                                 key='circle_filter_tab6'
                                             )
                                         
@@ -1489,7 +1856,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                         else:
                                             st.warning("⚠️ No records match the selected filters. Please adjust your criteria.")
-                                    
+
                                     st.markdown("---")
                                     st.success("✅ Report generated successfully!")
                                     
@@ -1508,7 +1875,6 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.info("💡 Set the `dataset_path` variable to point to your Excel file")
                     
 
-            st.header("📊 Year Wise Complaint Analysis Dashboard")
             st.divider()
             # Add your Streamlit code for Tab 2 here
 
