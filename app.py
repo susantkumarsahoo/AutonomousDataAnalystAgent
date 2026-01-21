@@ -46,28 +46,27 @@ try:
     )
 
     st.markdown("""
-    <div style='
-        background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
-        padding: 10px;
-        border-radius: 15px;
-        box-shadow: 0 8px 20px rgba(44, 83, 100, 0.5);
-        text-align: center;
-        margin-bottom: 20px;
-        border: 2px solid #4ECDC4;
-    '>
-        <h2 style='
-            color: #4ECDC4;
-            font-weight: bold;
-            margin: 0;
-            font-size: 28px;
-            letter-spacing: 1px;
-            text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        <div style='
+            background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(44, 83, 100, 0.5);
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid #4ECDC4;
         '>
-            🧭 CRM Navigation Panel TPSM
-        </h2>
-    </div>
-    """, unsafe_allow_html=True)
-
+            <h2 style='
+                color: #4ECDC4;
+                font-weight: bold;
+                margin: 0;
+                font-size: 28px;
+                letter-spacing: 1px;
+                text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+            '>
+                🧭 Navigation Panel
+            </h2>
+        </div>
+        """, unsafe_allow_html=True)
     # -----------------------------------------------------------------------------
     # SIDEBAR
     # -----------------------------------------------------------------------------

@@ -40,7 +40,10 @@ try:
             if response is not None and response.status_code == 200:
                 response_data = response.json()
                 if response_data:
-                    return pd.DataFrame(response_data), None, response.status_code
+                    # Convert to DataFrame
+                    df = pd.DataFrame(response_data)
+                    
+                    return df, None, response.status_code
                 else:
                     return None, "No data available", response.status_code
             else:
@@ -50,7 +53,6 @@ try:
             error_msg = str(CustomException(e, sys))
             logger.error(f"Error fetching open complaint pivot: {error_msg}")
             return None, error_msg, None
-
 
     @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
     def fetch_open_close_complaint_pivot():

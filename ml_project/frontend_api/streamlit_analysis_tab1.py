@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 import streamlit as st
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import datetime, timedelta
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
 from ml_project.backend_api.fastapi_analysis_helper import open_complaint_pivot
@@ -67,25 +68,981 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
         Logger instance for logging operations
     """
     try:    
+
         with tab1:
             # ========================================
             # SECTION 1: OPEN COMPLAINTS PIVOT
             # ========================================
             
             # Add button to fetch data
-            if st.button("📥 Load Open Complaints Data", key="load_complaints_btn",type="primary" ):
+            if st.button("📥 Load Open Complaints Data", key="load_complaints_btn", type="primary"):
                 with st.spinner("Loading data..."):
                     df_pivot, error, status_code = fetch_open_complaint_pivot()
 
                 if error is None and df_pivot is not None:
-                    st.subheader("📊 Open Complaints Reports")
+                    st.subheader("📊 Open Complaints Dashboard")
                     st.caption("Grand Total row is highlighted in red for easy identification")
-                    
+
+                    # Display the styled dataframe
                     styled_df = style_grand_total_dataframe(df_pivot)
                     st.dataframe(styled_df, use_container_width=True, height=400)
+                    st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}") 
+
+                    st.markdown("## 📊 Open Complaints Pie Chart")
+
+                    # Prepare data for visualization
+                    # Convert dict/DataFrame to proper format
+                    if isinstance(df_pivot, dict):
+                        df = pd.DataFrame(df_pivot)
+                    else:
+                        df = df_pivot.copy()
+                    
+                    # Set COMPLAINT TYPE as index if it exists as a column
+                    if 'COMPLAINT TYPE' in df.columns:
+                        df = df.set_index('COMPLAINT TYPE')
+                    
+                    # Remove Grand_Total column and Grand Total row for cleaner visualization
+                    if 'Grand_Total' in df.columns:
+                        df_viz = df.drop(columns=['Grand_Total'])
+                    else:
+                        df_viz = df.copy()
+                    
+                    df_viz = df_viz[df_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_viz.index else df_viz.copy()
+                    
+                    # Get total complaints per category (sum across columns)
+                    if len(df_viz.columns) > 0:
+                        totals = df_viz.sum(axis=1)
+                        totals = totals[totals > 0]  # Remove zero values
+                        
+                        if len(totals) > 0:
+                            # Create 3D Pie Chart with Plotly
+                            fig = go.Figure(data=[go.Pie(
+                                labels=totals.index.astype(str),  # Ensure labels are strings
+                                values=totals.values,
+                                hole=0.3,  # Donut chart style
+                                pull=[0.05] * len(totals),  # Slightly separate slices
+                                marker=dict(
+                                    colors=px.colors.qualitative.Plotly,  # Mixed vibrant colors
+                                    line=dict(color='white', width=2)
+                                ),
+                                textinfo='label+percent',
+                                textposition='auto',
+                                hovertemplate='<b>%{label}</b><br>' +
+                                            'Complaints: %{value}<br>' +
+                                            'Percentage: %{percent}<br>' +
+                                            '<extra></extra>'
+                            )])
+                            
+                            # Update layout for better appearance with bigger size
+                            fig.update_layout(
+                                title={
+                                    'text': '🎯 Complaints Distribution by Category',
+                                    'x': 0.5,
+                                    'xanchor': 'center',
+                                    'font': {'size': 20, 'color': '#1f77b4'}
+                                },
+                                showlegend=True,
+                                legend=dict(
+                                    orientation="v",
+                                    yanchor="middle",
+                                    y=0.5,
+                                    xanchor="left",
+                                    x=1.05,
+                                    font=dict(size=11)
+                                ),
+                                height=600,  # Bigger chart height
+                                margin=dict(l=20, r=150, t=80, b=20),
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                plot_bgcolor='rgba(0,0,0,0)'
+                            )
+                            
+                            # Add 3D effect using scene configuration
+                            fig.update_traces(
+                                rotation=90,
+                                pull=[0.1 if i == totals.values.argmax() else 0.02 
+                                    for i in range(len(totals))]  # Pull out largest slice
+                            )
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+
+
+                            st.markdown("## 🍩 Open Complaints Donut Chart")
+
+                            # Prepare data for donut visualization
+                            if isinstance(df_pivot, dict):
+                                df_donut = pd.DataFrame(df_pivot)
+                            else:
+                                df_donut = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_donut.columns:
+                                df_donut = df_donut.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_donut.columns:
+                                df_donut_viz = df_donut.drop(columns=['Grand_Total'])
+                            else:
+                                df_donut_viz = df_donut.copy()
+
+                            df_donut_viz = df_donut_viz[df_donut_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_donut_viz.index else df_donut_viz.copy()
+
+                            # Get total complaints per category (sum across columns)
+                            if len(df_donut_viz.columns) > 0:
+                                totals_donut = df_donut_viz.sum(axis=1)
+                                totals_donut = totals_donut[totals_donut > 0]  # Remove zero values
+                                
+                                if len(totals_donut) > 0:
+                                    # Create Donut Chart with Plotly
+                                    fig_donut = go.Figure(data=[go.Pie(
+                                        labels=totals_donut.index.astype(str),
+                                        values=totals_donut.values,
+                                        hole=0.5,  # Larger hole for donut effect
+                                        pull=[0.08] * len(totals_donut),
+                                        marker=dict(
+                                            colors=px.colors.qualitative.Bold,  # Different color palette
+                                            line=dict(color='white', width=3)
+                                        ),
+                                        textinfo='label+value',
+                                        textposition='outside',
+                                        hovertemplate='<b>%{label}</b><br>' +
+                                                    'Total: %{value}<br>' +
+                                                    'Share: %{percent}<br>' +
+                                                    '<extra></extra>'
+                                    )])
+                                    
+                                    # Update layout
+                                    fig_donut.update_layout(
+                                        title={
+                                            'text': '🎯 Complaints by Category - Donut View',
+                                            'x': 0.5,
+                                            'xanchor': 'center',
+                                            'font': {'size': 20, 'color': '#2ca02c'}
+                                        },
+                                        showlegend=True,
+                                        legend=dict(
+                                            orientation="h",
+                                            yanchor="bottom",
+                                            y=-0.2,
+                                            xanchor="center",
+                                            x=0.5,
+                                            font=dict(size=11)
+                                        ),
+                                        height=600,
+                                        margin=dict(l=20, r=20, t=80, b=100),
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        annotations=[dict(
+                                            text=f'Total<br>{int(totals_donut.sum())}',
+                                            x=0.5, y=0.5,
+                                            font_size=24,
+                                            showarrow=False,
+                                            font_color='#333333'
+                                        )]
+                                    )
+                                    
+                                    # Highlight the largest slice
+                                    fig_donut.update_traces(
+                                        pull=[0.15 if i == totals_donut.values.argmax() else 0.05 
+                                            for i in range(len(totals_donut))]
+                                    )
+                                    
+                                    st.plotly_chart(fig_donut, use_container_width=True)
+                                    
+                                else:
+                                    st.warning("No complaint data available for donut chart")
+                            else:
+                                st.warning("No columns found in the data for donut chart")
+
+
+                            st.markdown("## 📊 Open Complaints Marimekko Chart")
+
+                            # Prepare data for Marimekko visualization
+                            if isinstance(df_pivot, dict):
+                                df_marimekko = pd.DataFrame(df_pivot)
+                            else:
+                                df_marimekko = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_marimekko.columns:
+                                df_marimekko = df_marimekko.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_marimekko.columns:
+                                df_marimekko_viz = df_marimekko.drop(columns=['Grand_Total'])
+                            else:
+                                df_marimekko_viz = df_marimekko.copy()
+
+                            df_marimekko_viz = df_marimekko_viz[df_marimekko_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_marimekko_viz.index else df_marimekko_viz.copy()
+
+                            # Get data for Marimekko chart
+                            if len(df_marimekko_viz.columns) > 0 and len(df_marimekko_viz) > 0:
+                                # Calculate totals and proportions
+                                category_totals = df_marimekko_viz.sum(axis=1)
+                                category_totals = category_totals[category_totals > 0]
+                                
+                                if len(category_totals) > 0:
+                                    # Prepare data for Marimekko chart using shapes
+                                    fig_marimekko = go.Figure()
+                                    
+                                    # Calculate cumulative widths for positioning
+                                    total_complaints = category_totals.sum()
+                                    cumulative_x = 0
+                                    colors = px.colors.qualitative.Vivid
+                                    
+                                    # Store all rectangles and annotations
+                                    shapes = []
+                                    annotations = []
+                                    legend_traces = []
+                                    
+                                    for idx, (category, total) in enumerate(category_totals.items()):
+                                        # Width proportional to total complaints in category
+                                        width = (total / total_complaints) * 100
+                                        
+                                        # Get subcategory breakdown if available
+                                        if len(df_marimekko_viz.columns) > 1:
+                                            subcategories = df_marimekko_viz.loc[category]
+                                            subcategories = subcategories[subcategories > 0]
+                                            
+                                            cumulative_y = 0
+                                            for sub_idx, (subcategory, value) in enumerate(subcategories.items()):
+                                                height = (value / total) * 100
+                                                
+                                                # Calculate opacity for subcategories
+                                                opacity = 0.6 + (sub_idx * 0.15)
+                                                if opacity > 1:
+                                                    opacity = 0.6 + ((sub_idx % 3) * 0.15)
+                                                
+                                                # Add rectangle shape
+                                                shapes.append(dict(
+                                                    type="rect",
+                                                    x0=cumulative_x,
+                                                    x1=cumulative_x + width,
+                                                    y0=cumulative_y,
+                                                    y1=cumulative_y + height,
+                                                    fillcolor=colors[idx % len(colors)],
+                                                    opacity=opacity,
+                                                    line=dict(color='white', width=2)
+                                                ))
+                                                
+                                                # Add annotation for label (only if rectangle is large enough)
+                                                if height > 5 and width > 5:
+                                                    annotations.append(dict(
+                                                        x=cumulative_x + width/2,
+                                                        y=cumulative_y + height/2,
+                                                        text=f'{subcategory}<br>{int(value)}',
+                                                        showarrow=False,
+                                                        font=dict(size=9, color='white'),
+                                                        align='center'
+                                                    ))
+                                                
+                                                # Add invisible scatter trace for legend
+                                                legend_traces.append(go.Scatter(
+                                                    x=[cumulative_x + width/2],
+                                                    y=[cumulative_y + height/2],
+                                                    mode='markers',
+                                                    marker=dict(size=10, color=colors[idx % len(colors)], opacity=opacity),
+                                                    name=f'{category} - {subcategory}',
+                                                    hovertemplate=f'<b>{category} - {subcategory}</b><br>' +
+                                                                f'Count: {int(value)}<br>' +
+                                                                f'Category %: {height:.1f}%<br>' +
+                                                                f'Total %: {(value/total_complaints)*100:.1f}%<br>' +
+                                                                '<extra></extra>',
+                                                    showlegend=True
+                                                ))
+                                                
+                                                cumulative_y += height
+                                        else:
+                                            # Single category without subcategories
+                                            shapes.append(dict(
+                                                type="rect",
+                                                x0=cumulative_x,
+                                                x1=cumulative_x + width,
+                                                y0=0,
+                                                y1=100,
+                                                fillcolor=colors[idx % len(colors)],
+                                                opacity=0.7,
+                                                line=dict(color='white', width=2)
+                                            ))
+                                            
+                                            annotations.append(dict(
+                                                x=cumulative_x + width/2,
+                                                y=50,
+                                                text=f'{category}<br>{int(total)}',
+                                                showarrow=False,
+                                                font=dict(size=10, color='white', weight='bold'),
+                                                align='center'
+                                            ))
+                                            
+                                            legend_traces.append(go.Scatter(
+                                                x=[cumulative_x + width/2],
+                                                y=[50],
+                                                mode='markers',
+                                                marker=dict(size=10, color=colors[idx % len(colors)]),
+                                                name=category,
+                                                hovertemplate=f'<b>{category}</b><br>' +
+                                                            f'Count: {int(total)}<br>' +
+                                                            f'Percentage: {width:.1f}%<br>' +
+                                                            '<extra></extra>',
+                                                showlegend=True
+                                            ))
+                                        
+                                        cumulative_x += width
+                                    
+                                    # Add all traces
+                                    for trace in legend_traces:
+                                        fig_marimekko.add_trace(trace)
+                                    
+                                    # Update layout with shapes and annotations
+                                    fig_marimekko.update_layout(
+                                        title={
+                                            'text': '📐 Complaints Distribution - Marimekko View',
+                                            'x': 0.5,
+                                            'xanchor': 'center',
+                                            'font': {'size': 20, 'color': '#d62728'}
+                                        },
+                                        shapes=shapes,
+                                        annotations=annotations,
+                                        xaxis=dict(
+                                            title='Proportion of Total Complaints (%)',
+                                            showgrid=True,
+                                            gridcolor='lightgray',
+                                            range=[0, 100],
+                                            zeroline=False
+                                        ),
+                                        yaxis=dict(
+                                            title='Category Distribution (%)',
+                                            showgrid=True,
+                                            gridcolor='lightgray',
+                                            range=[0, 100],
+                                            zeroline=False
+                                        ),
+                                        height=600,
+                                        margin=dict(l=60, r=200, t=80, b=60),
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(250,250,250,0.5)',
+                                        showlegend=True,
+                                        legend=dict(
+                                            orientation="v",
+                                            yanchor="top",
+                                            y=1,
+                                            xanchor="left",
+                                            x=1.02,
+                                            font=dict(size=9),
+                                            bgcolor='rgba(255,255,255,0.8)'
+                                        ),
+                                        hovermode='closest'
+                                    )
+                                    
+                                    st.plotly_chart(fig_marimekko, use_container_width=True)
+                                    
+                                    # Add explanation
+                                    st.caption("💡 Width represents proportion of total complaints, height shows internal distribution within each category")
+                                    
+                                else:
+                                    st.warning("No complaint data available for Marimekko chart")
+                            else:
+                                st.warning("No columns found in the data for Marimekko chart")
+
+
+
+                            st.markdown("## 📈 Open Complaints Area Chart by Category")
+
+                            # Prepare data for Area Chart visualization
+                            if isinstance(df_pivot, dict):
+                                df_area = pd.DataFrame(df_pivot)
+                            else:
+                                df_area = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_area.columns:
+                                df_area = df_area.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_area.columns:
+                                df_area_viz = df_area.drop(columns=['Grand_Total'])
+                            else:
+                                df_area_viz = df_area.copy()
+
+                            df_area_viz = df_area_viz[df_area_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_area_viz.index else df_area_viz.copy()
+
+                            # Get data for Area chart
+                            if len(df_area_viz.columns) > 0 and len(df_area_viz) > 0:
+                                # Transpose data so categories become columns
+                                df_area_transposed = df_area_viz.T
+                                
+                                if len(df_area_transposed) > 0:
+                                    # Create Area Chart with Plotly
+                                    fig_area = go.Figure()
+                                    
+                                    colors = px.colors.qualitative.Pastel
+                                    
+                                    # Add area trace for each complaint category
+                                    for idx, category in enumerate(df_area_transposed.columns):
+                                        fig_area.add_trace(go.Scatter(
+                                            x=df_area_transposed.index,
+                                            y=df_area_transposed[category],
+                                            mode='lines',
+                                            name=str(category),
+                                            fill='tonexty' if idx > 0 else 'tozeroy',
+                                            line=dict(
+                                                width=2,
+                                                color=colors[idx % len(colors)]
+                                            ),
+                                            fillcolor=colors[idx % len(colors)],
+                                            hovertemplate='<b>%{fullData.name}</b><br>' +
+                                                        'Period: %{x}<br>' +
+                                                        'Complaints: %{y}<br>' +
+                                                        '<extra></extra>',
+                                            stackgroup='one'
+                                        ))
+                                    
+                                    # Update layout
+                                    fig_area.update_layout(
+                                        title={
+                                            'text': '📊 Complaints Trend - Stacked Area View',
+                                            'x': 0.5,
+                                            'xanchor': 'center',
+                                            'font': {'size': 20, 'color': '#9467bd'}
+                                        },
+                                        xaxis=dict(
+                                            title='Time Period / Category',
+                                            showgrid=True,
+                                            gridcolor='lightgray',
+                                            tickangle=-45
+                                        ),
+                                        yaxis=dict(
+                                            title='Number of Complaints',
+                                            showgrid=True,
+                                            gridcolor='lightgray'
+                                        ),
+                                        height=600,
+                                        margin=dict(l=60, r=20, t=80, b=100),
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(250,250,250,0.5)',
+                                        showlegend=True,
+                                        legend=dict(
+                                            orientation="v",
+                                            yanchor="top",
+                                            y=1,
+                                            xanchor="left",
+                                            x=1.02,
+                                            font=dict(size=11),
+                                            bgcolor='rgba(255,255,255,0.8)',
+                                            bordercolor='gray',
+                                            borderwidth=1
+                                        ),
+                                        hovermode='x unified'
+                                    )
+                                    
+                                    st.plotly_chart(fig_area, use_container_width=True)
+                                    
+                                    # Add summary statistics
+                                    st.markdown("### 📊 Area Chart Insights")
+                                    insight_cols = st.columns(3)
+                                    with insight_cols[0]:
+                                        total_periods = len(df_area_transposed)
+                                        st.metric("Total Periods", str(total_periods))
+                                    with insight_cols[1]:
+                                        total_categories = len(df_area_transposed.columns)
+                                        st.metric("Categories Tracked", str(total_categories))
+                                    with insight_cols[2]:
+                                        max_period = df_area_transposed.sum(axis=1).idxmax()
+                                        max_value = int(df_area_transposed.sum(axis=1).max())
+                                        st.metric("Peak Period", str(max_period), f"{max_value} complaints")
+                                    
+                                else:
+                                    st.warning("No complaint data available for area chart")
+                            else:
+                                st.warning("No columns found in the data for area chart")                        
+
+
+
+                            st.markdown("## 🔻 Open Complaints Funnel Chart")
+
+                            # Prepare data for Funnel Chart visualization
+                            if isinstance(df_pivot, dict):
+                                df_funnel = pd.DataFrame(df_pivot)
+                            else:
+                                df_funnel = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_funnel.columns:
+                                df_funnel = df_funnel.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_funnel.columns:
+                                df_funnel_viz = df_funnel.drop(columns=['Grand_Total'])
+                            else:
+                                df_funnel_viz = df_funnel.copy()
+
+                            df_funnel_viz = df_funnel_viz[df_funnel_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_funnel_viz.index else df_funnel_viz.copy()
+
+                            # Get data for Funnel chart
+                            if len(df_funnel_viz.columns) > 0 and len(df_funnel_viz) > 0:
+                                # Calculate totals and sort in descending order
+                                funnel_totals = df_funnel_viz.sum(axis=1)
+                                funnel_totals = funnel_totals[funnel_totals > 0].sort_values(ascending=False)
+                                
+                                if len(funnel_totals) > 0:
+                                    # Create Funnel Chart with Plotly
+                                    fig_funnel = go.Figure()
+                                    
+                                    colors = px.colors.sequential.RdBu
+                                    
+                                    fig_funnel.add_trace(go.Funnel(
+                                        name='Complaints',
+                                        y=funnel_totals.index.astype(str),
+                                        x=funnel_totals.values,
+                                        textposition="inside",
+                                        textinfo="value+percent initial",
+                                        opacity=0.85,
+                                        marker=dict(
+                                            color=colors,
+                                            line=dict(
+                                                color='white',
+                                                width=2
+                                            )
+                                        ),
+                                        connector=dict(
+                                            line=dict(
+                                                color="royalblue",
+                                                dash="dot",
+                                                width=3
+                                            )
+                                        ),
+                                        hovertemplate='<b>%{label}</b><br>' +
+                                                    'Complaints: %{value}<br>' +
+                                                    'Percentage: %{percentInitial}<br>' +
+                                                    '<extra></extra>'
+                                    ))
+                                    
+                                    # Update layout
+                                    fig_funnel.update_layout(
+                                        title={
+                                            'text': '🎯 Complaints Volume Funnel',
+                                            'x': 0.5,
+                                            'xanchor': 'center',
+                                            'font': {'size': 20, 'color': '#ff7f0e'}
+                                        },
+                                        funnelmode="stack",
+                                        height=600,
+                                        margin=dict(l=20, r=20, t=80, b=60),
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        showlegend=False,
+                                        xaxis=dict(
+                                            title='Number of Complaints',
+                                            showgrid=True,
+                                            gridcolor='lightgray'
+                                        )
+                                    )
+                                    
+                                    st.plotly_chart(fig_funnel, use_container_width=True)
+                                    
+                                    # Add funnel metrics
+                                    st.markdown("### 📉 Funnel Analysis")
+                                    funnel_cols = st.columns(4)
+                                    with funnel_cols[0]:
+                                        st.metric("Top Stage", str(funnel_totals.index[0]), 
+                                                f"{int(funnel_totals.iloc[0])} complaints")
+                                    with funnel_cols[1]:
+                                        if len(funnel_totals) > 1:
+                                            conversion_rate = (funnel_totals.iloc[-1] / funnel_totals.iloc[0]) * 100
+                                            st.metric("Conversion Rate", f"{conversion_rate:.1f}%")
+                                        else:
+                                            st.metric("Conversion Rate", "N/A")
+                                    with funnel_cols[2]:
+                                        if len(funnel_totals) > 1:
+                                            drop_off = funnel_totals.iloc[0] - funnel_totals.iloc[-1]
+                                            st.metric("Total Drop-off", f"{int(drop_off)}")
+                                        else:
+                                            st.metric("Total Drop-off", "N/A")
+                                    with funnel_cols[3]:
+                                        st.metric("Funnel Stages", str(len(funnel_totals)))
+                                    
+                                    st.caption("💡 Funnel shows complaint categories sorted by volume from highest to lowest")
+                                    
+                                else:
+                                    st.warning("No complaint data available for funnel chart")
+                            else:
+                                st.warning("No columns found in the data for funnel chart")
+
+
+
+                            st.markdown("## 🔄 Open Complaints Sankey Diagram")
+
+                            # Prepare data for Sankey Diagram visualization
+                            if isinstance(df_pivot, dict):
+                                df_sankey = pd.DataFrame(df_pivot)
+                            else:
+                                df_sankey = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_sankey.columns:
+                                df_sankey = df_sankey.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_sankey.columns:
+                                df_sankey_viz = df_sankey.drop(columns=['Grand_Total'])
+                            else:
+                                df_sankey_viz = df_sankey.copy()
+
+                            df_sankey_viz = df_sankey_viz[df_sankey_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_sankey_viz.index else df_sankey_viz.copy()
+
+                            # Get data for Sankey diagram
+                            if len(df_sankey_viz.columns) > 0 and len(df_sankey_viz) > 0:
+                                # Prepare data for Sankey
+                                sources = []
+                                targets = []
+                                values = []
+                                labels = []
+                                
+                                # Create label list (complaint types + subcategories)
+                                complaint_types = df_sankey_viz.index.tolist()
+                                subcategories = df_sankey_viz.columns.tolist()
+                                labels = complaint_types + subcategories
+                                
+                                # Create source-target-value relationships
+                                for i, complaint_type in enumerate(complaint_types):
+                                    for j, subcategory in enumerate(subcategories):
+                                        value = df_sankey_viz.loc[complaint_type, subcategory]
+                                        if value > 0:  # Only include non-zero flows
+                                            sources.append(i)  # Index of complaint type
+                                            targets.append(len(complaint_types) + j)  # Index of subcategory
+                                            values.append(value)
+                                
+                                if len(sources) > 0:
+                                    # Create color palette
+                                    colors_palette = px.colors.qualitative.Set2
+                                    node_colors = [colors_palette[i % len(colors_palette)] for i in range(len(labels))]
+                                    
+                                    # Create link colors with transparency
+                                    link_colors = []
+                                    for source_idx in sources:
+                                        base_color = colors_palette[source_idx % len(colors_palette)]
+                                        # Convert to rgba with transparency
+                                        if base_color.startswith('#'):
+                                            r = int(base_color[1:3], 16)
+                                            g = int(base_color[3:5], 16)
+                                            b = int(base_color[5:7], 16)
+                                            link_colors.append(f'rgba({r},{g},{b},0.4)')
+                                        else:
+                                            link_colors.append(base_color)
+                                    
+                                    # Create Sankey Diagram
+                                    fig_sankey = go.Figure(data=[go.Sankey(
+                                        node=dict(
+                                            pad=15,
+                                            thickness=20,
+                                            line=dict(color='white', width=2),
+                                            label=labels,
+                                            color=node_colors,
+                                            hovertemplate='<b>%{label}</b><br>Total: %{value}<extra></extra>'
+                                        ),
+                                        link=dict(
+                                            source=sources,
+                                            target=targets,
+                                            value=values,
+                                            color=link_colors,
+                                            hovertemplate='<b>%{source.label}</b> → <b>%{target.label}</b><br>' +
+                                                        'Flow: %{value}<br>' +
+                                                        '<extra></extra>'
+                                        )
+                                    )])
+                                    
+                                    # Update layout
+                                    fig_sankey.update_layout(
+                                        title={
+                                            'text': '🌊 Complaints Flow - Sankey Diagram',
+                                            'x': 0.5,
+                                            'xanchor': 'center',
+                                            'font': {'size': 20, 'color': '#17becf'}
+                                        },
+                                        height=600,
+                                        margin=dict(l=20, r=20, t=80, b=60),
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        font=dict(size=11, color='#333333')
+                                    )
+                                    
+                                    st.plotly_chart(fig_sankey, use_container_width=True)
+                                    
+                                    # Add Sankey metrics
+                                    st.markdown("### 🔀 Flow Analysis")
+                                    sankey_cols = st.columns(4)
+                                    with sankey_cols[0]:
+                                        total_flow = sum(values)
+                                        st.metric("Total Flow", f"{int(total_flow):,}")
+                                    with sankey_cols[1]:
+                                        st.metric("Source Nodes", str(len(complaint_types)))
+                                    with sankey_cols[2]:
+                                        st.metric("Target Nodes", str(len(subcategories)))
+                                    with sankey_cols[3]:
+                                        st.metric("Active Connections", str(len(sources)))
+                                    
+                                    st.caption("💡 Sankey diagram shows the flow of complaints from categories (left) to subcategories (right)")
+                                    
+                                else:
+                                    st.warning("No complaint flow data available for Sankey diagram")
+                            else:
+                                st.warning("No columns found in the data for Sankey diagram")
+
+
+
+
+
+                            st.markdown("## 🔥 Open Complaints Heatmap")
+
+                            # Prepare data for Heatmap visualization
+                            if isinstance(df_pivot, dict):
+                                df_heatmap = pd.DataFrame(df_pivot)
+                            else:
+                                df_heatmap = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_heatmap.columns:
+                                df_heatmap = df_heatmap.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_heatmap.columns:
+                                df_heatmap_viz = df_heatmap.drop(columns=['Grand_Total'])
+                            else:
+                                df_heatmap_viz = df_heatmap.copy()
+
+                            df_heatmap_viz = df_heatmap_viz[df_heatmap_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_heatmap_viz.index else df_heatmap_viz.copy()
+
+                            # Get data for Heatmap
+                            if len(df_heatmap_viz.columns) > 0 and len(df_heatmap_viz) > 0:
+                                # Create Heatmap with Plotly
+                                fig_heatmap = go.Figure(data=go.Heatmap(
+                                    z=df_heatmap_viz.values,
+                                    x=df_heatmap_viz.columns.astype(str),
+                                    y=df_heatmap_viz.index.astype(str),
+                                    colorscale='YlOrRd',  # Yellow-Orange-Red color scale
+                                    text=df_heatmap_viz.values,
+                                    texttemplate='%{text}',
+                                    textfont=dict(size=10, color='white'),
+                                    hoverongaps=False,
+                                    hovertemplate='<b>Category:</b> %{y}<br>' +
+                                                '<b>Subcategory:</b> %{x}<br>' +
+                                                '<b>Complaints:</b> %{z}<br>' +
+                                                '<extra></extra>',
+                                    colorbar=dict(
+                                        title='Complaints',
+                                        titleside='right',
+                                        tickmode='linear',
+                                        tick0=0,
+                                        dtick=df_heatmap_viz.values.max() / 10 if df_heatmap_viz.values.max() > 0 else 1,
+                                        thickness=15,
+                                        len=0.7
+                                    )
+                                ))
+                                
+                                # Update layout
+                                fig_heatmap.update_layout(
+                                    title={
+                                        'text': '🌡️ Complaints Intensity Heatmap',
+                                        'x': 0.5,
+                                        'xanchor': 'center',
+                                        'font': {'size': 20, 'color': '#e74c3c'}
+                                    },
+                                    xaxis=dict(
+                                        title='Subcategories',
+                                        side='bottom',
+                                        tickangle=-45,
+                                        showgrid=False
+                                    ),
+                                    yaxis=dict(
+                                        title='Complaint Types',
+                                        showgrid=False,
+                                        autorange='reversed'  # Top to bottom ordering
+                                    ),
+                                    height=600,
+                                    margin=dict(l=150, r=100, t=80, b=120),
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(255,255,255,1)'
+                                )
+                                
+                                st.plotly_chart(fig_heatmap, use_container_width=True)
+                                
+                                # Add Heatmap statistics
+                                st.markdown("### 🔥 Heatmap Insights")
+                                heatmap_cols = st.columns(4)
+                                with heatmap_cols[0]:
+                                    max_value = int(df_heatmap_viz.values.max())
+                                    st.metric("Highest Intensity", f"{max_value:,}")
+                                with heatmap_cols[1]:
+                                    min_value = int(df_heatmap_viz.values.min())
+                                    st.metric("Lowest Intensity", f"{min_value:,}")
+                                with heatmap_cols[2]:
+                                    avg_value = int(df_heatmap_viz.values.mean())
+                                    st.metric("Average Complaints", f"{avg_value:,}")
+                                with heatmap_cols[3]:
+                                    # Find hotspot (cell with max value)
+                                    max_idx = df_heatmap_viz.values.argmax()
+                                    max_row = max_idx // len(df_heatmap_viz.columns)
+                                    max_col = max_idx % len(df_heatmap_viz.columns)
+                                    hotspot = f"{df_heatmap_viz.index[max_row]}"
+                                    st.metric("Hotspot Category", hotspot[:20] + "..." if len(hotspot) > 20 else hotspot)
+                                
+                                st.caption("💡 Darker colors indicate higher complaint volumes. Hover over cells for detailed information.")
+                                
+                            else:
+                                st.warning("No complaint data available for heatmap")
+
+
+
+                            st.markdown("## 📊 Open Complaints Count Bar Chart")
+
+                            # Prepare data for Count Bar Chart visualization
+                            if isinstance(df_pivot, dict):
+                                df_bar = pd.DataFrame(df_pivot)
+                            else:
+                                df_bar = df_pivot.copy()
+
+                            # Set COMPLAINT TYPE as index if it exists as a column
+                            if 'COMPLAINT TYPE' in df_bar.columns:
+                                df_bar = df_bar.set_index('COMPLAINT TYPE')
+
+                            # Remove Grand_Total column and Grand Total row for cleaner visualization
+                            if 'Grand_Total' in df_bar.columns:
+                                df_bar_viz = df_bar.drop(columns=['Grand_Total'])
+                            else:
+                                df_bar_viz = df_bar.copy()
+
+                            df_bar_viz = df_bar_viz[df_bar_viz.index != 'Grand_Total'].copy() if 'Grand_Total' in df_bar_viz.index else df_bar_viz.copy()
+
+                            # Get data for Count Bar Chart
+                            if len(df_bar_viz.columns) > 0 and len(df_bar_viz) > 0:
+                                # Calculate totals per category
+                                bar_totals = df_bar_viz.sum(axis=1)
+                                bar_totals = bar_totals[bar_totals > 0].sort_values(ascending=True)  # Sort ascending for horizontal bars
+                                
+                                if len(bar_totals) > 0:
+                                    # Create color gradient based on values
+                                    colors_gradient = px.colors.sequential.Viridis
+                                    normalized_values = (bar_totals - bar_totals.min()) / (bar_totals.max() - bar_totals.min()) if bar_totals.max() > bar_totals.min() else [0.5] * len(bar_totals)
+                                    bar_colors = [colors_gradient[int(val * (len(colors_gradient) - 1))] for val in normalized_values]
+                                    
+                                    # Create horizontal bar chart
+                                    fig_bar = go.Figure()
+                                    
+                                    fig_bar.add_trace(go.Bar(
+                                        x=bar_totals.values,
+                                        y=bar_totals.index.astype(str),
+                                        orientation='h',
+                                        marker=dict(
+                                            color=bar_colors,
+                                            line=dict(color='white', width=1.5),
+                                            opacity=0.9
+                                        ),
+                                        text=bar_totals.values,
+                                        texttemplate='%{text:,}',
+                                        textposition='outside',
+                                        textfont=dict(size=11, color='#333333'),
+                                        hovertemplate='<b>%{y}</b><br>' +
+                                                    'Total Complaints: %{x:,}<br>' +
+                                                    '<extra></extra>'
+                                    ))
+                                    
+                                    # Update layout
+                                    fig_bar.update_layout(
+                                        title={
+                                            'text': '📊 Complaint Count by Category',
+                                            'x': 0.5,
+                                            'xanchor': 'center',
+                                            'font': {'size': 20, 'color': '#3498db'}
+                                        },
+                                        xaxis=dict(
+                                            title='Number of Complaints',
+                                            showgrid=True,
+                                            gridcolor='lightgray',
+                                            zeroline=True,
+                                            zerolinecolor='gray',
+                                            zerolinewidth=2
+                                        ),
+                                        yaxis=dict(
+                                            title='Complaint Categories',
+                                            showgrid=False,
+                                            tickfont=dict(size=10)
+                                        ),
+                                        height=600,
+                                        margin=dict(l=200, r=80, t=80, b=60),
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(250,250,250,0.5)',
+                                        showlegend=False
+                                    )
+                                    
+                                    st.plotly_chart(fig_bar, use_container_width=True)
+                                    
+                                    # Add bar chart statistics
+                                    st.markdown("### 📊 Bar Chart Statistics")
+                                    bar_cols = st.columns(4)
+                                    with bar_cols[0]:
+                                        total_complaints = int(bar_totals.sum())
+                                        st.metric("Total Complaints", f"{total_complaints:,}")
+                                    with bar_cols[1]:
+                                        top_category = str(bar_totals.iloc[-1] if len(bar_totals) > 0 else "N/A")
+                                        top_count = int(bar_totals.iloc[-1]) if len(bar_totals) > 0 else 0
+                                        st.metric("Top Category", top_category[:15] + "..." if len(top_category) > 15 else top_category, 
+                                                f"{top_count:,}")
+                                    with bar_cols[2]:
+                                        if len(bar_totals) > 0:
+                                            median_value = int(bar_totals.median())
+                                            st.metric("Median Count", f"{median_value:,}")
+                                        else:
+                                            st.metric("Median Count", "N/A")
+                                    with bar_cols[3]:
+                                        st.metric("Categories", str(len(bar_totals)))
+                                    
+                                    st.caption("💡 Horizontal bars show complaint counts sorted from lowest to highest")
+                                    
+                                else:
+                                    st.warning("No complaint data available for count bar chart")
+                            else:
+                                st.warning("No columns found in the data for count bar chart")
+
+
+
+
+                            
+                            st.markdown("### 📈 Quick Stats")
+
+                            # Create 5 columns instead of 3
+                            metric_cols = st.columns(5)
+
+                            with metric_cols[0]:
+                                st.metric("Total Complaints", f"{int(totals.sum()):,}")
+
+                            with metric_cols[1]:
+                                st.metric("Categories", str(len(totals)))
+
+                            with metric_cols[2]:
+                                max_category = str(totals.idxmax())
+                                max_value = int(totals.max())
+                                st.metric("Top Category", max_category, f"{max_value} cases")
+
+                            with metric_cols[3]:
+                                min_category = str(totals.idxmin())
+                                min_value = int(totals.min())
+                                st.metric("Lowest Category", min_category, f"{min_value} cases")
+
+                            with metric_cols[4]:
+                                # Calculate the median value
+                                median_value = totals.median()
+                                # Find the category whose value is closest to the median
+                                median_category = (totals - median_value).abs().idxmin()
+                                median_display_value = int(totals[median_category])
+                                st.metric("Median Category", median_category, f"{median_display_value} cases")
+
+
+                        else:
+                            st.warning("No complaint data available to visualize")
+                    else:
+                        st.warning("No columns found in the data")
+                    
                     logger.info("Tab 1: Complaint overview displayed successfully")
                     
-                    st.caption(f"Last cached: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 else:
                     if status_code:
                         st.error(f"❌ Failed to fetch data. Status code: {status_code}")
@@ -96,11 +1053,20 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
                         st.info("The API service may be temporarily unavailable. Please try again in a few moments.")
                         logger.error(f"Tab 1: Error - {error}")
             else:
-                st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 st.info("👆 Click the button above to load the open complaints data")
-            
+                st.caption(f"Ready to load at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
             st.divider()
+
+
+
+
+
+
+
+
+
+
 
             # ========================================
             # SECTION 2: OPEN/CLOSE COMPLAINTS PIVOT
