@@ -1235,6 +1235,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
 
 
 
+
                 st.divider()
                 # ========================================
                 # SECTION 1: YEAR TO DATE RANGE SELECTION
@@ -1776,23 +1777,25 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             if treemap_data:
                                 df_treemap = pd.DataFrame(treemap_data)
                                 
+                                # Create treemap
                                 fig_treemap = px.treemap(
                                     df_treemap,
                                     path=['Complaint Type', 'Department', 'Status'],
                                     values='Count',
                                     color='Count',
-                                    color_continuous_scale='Rainbow',
-                                    title="<b>Interactive Sunburst Chart</b><br><sub>Click segments to drill down</sub>"
+                                    color_continuous_scale='Turbo',
+                                    title="<b>Complaint Hierarchy Treemap</b><br><sub>Complaint Type → Department → Status</sub>"
                                 )
-                                fig_sunburst.update_layout(
+                                fig_treemap.update_layout(
                                     height=680,
                                     title=dict(font=dict(size=21), x=0.5, xanchor='center')
                                 )
-                                fig_sunburst.update_traces(
+                                fig_treemap.update_traces(
                                     textinfo="label+value+percent parent",
-                                    textfont=dict(size=12, family='Arial')
+                                    textfont=dict(size=13, family='Arial'),
+                                    marker=dict(line=dict(width=2, color='white'))
                                 )
-                                st.plotly_chart(fig_sunburst, use_container_width=True)
+                                st.plotly_chart(fig_treemap, use_container_width=True)
                             
                             # Bubble Chart - Department Performance
                             st.subheader("Department Performance Bubble Analysis")
@@ -1892,78 +1895,6 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 yaxis_title="<b>Number of Complaints</b>"
                             )
                             st.plotly_chart(fig_waterfall, use_container_width=True)
-                        
-                        st.divider()
-                        
-                        # ========================================
-                        # DATA TABLE SECTION
-                        # ========================================
-                        st.header("📋 Detailed Data Table")
-                        
-                        # Add download and export options
-                        col_export1, col_export2, col_export3 = st.columns([1, 1, 1])
-                        
-                        with col_export2:
-                            csv = df.to_csv(index=True).encode('utf-8')
-                            st.download_button(
-                                label="📥 Download CSV Report",
-                                data=csv,
-                                file_name=f"finance_year_report_{date_range.replace(' ', '_').replace('/', '-')}.csv",
-                                mime="text/csv",
-                                use_container_width=True,
-                                type="primary"
-                            )
-                        
-                        # Display dataframe with enhanced styling
-                        st.dataframe(
-                            df,
-                            use_container_width=True,
-                            height=450
-                        )
-                        
-                        logger.info(f"Tab 2: Finance year report generated | range={date_range}")
-                        
-                        # Store last generated time
-                        st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-                        
-                        # Reset flag after successful generation
-                        st.session_state.generate_report_tab2 = False
-                        
-                    else:
-                        if status_code:
-                            st.error(f"❌ Failed to fetch data. Status code: {status_code}")
-                            logger.error(f"Tab 2: API request failed | status_code={status_code}")
-                        else:
-                            st.error(f"❌ Error: {error}")
-                            logger.error(f"Tab 2: Error - {error}")
-                        
-                        # Reset flag after error
-                        st.session_state.generate_report_tab2 = False
-
-                            # Show last loaded timestamp
-                        if "last_report_time_tab2" in st.session_state:
-                            st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
-
-
-                            # Create treemap
-                            fig_treemap = px.treemap(
-                                df_treemap,
-                                path=['Complaint Type', 'Department', 'Status'],
-                                values='Count',
-                                color='Count',
-                                color_continuous_scale='Turbo',
-                                title="<b>Complaint Hierarchy Treemap</b><br><sub>Complaint Type → Department → Status</sub>"
-                            )
-                            fig_treemap.update_layout(
-                                height=680,
-                                title=dict(font=dict(size=21), x=0.5, xanchor='center')
-                            )
-                            fig_treemap.update_traces(
-                                textinfo="label+value+percent parent",
-                                textfont=dict(size=13, family='Arial'),
-                                marker=dict(line=dict(width=2, color='white'))
-                            )
-                            st.plotly_chart(fig_treemap, use_container_width=True)
 
                             # Top Complaint Types
                             st.subheader("Top Complaint Rankings")
@@ -2002,6 +1933,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 yaxis=dict(autorange="reversed", tickfont=dict(size=11))
                             )
                             st.plotly_chart(fig_top, use_container_width=True)
+                        
                         
                         with viz_tab4:
                             st.subheader("Advanced Analytics & Insights")
@@ -2080,41 +2012,52 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             # Sunburst Chart
                             st.subheader("Interactive Sunburst Hierarchy")
                             
-                        if sunburst_data:
-                            df_sunburst = pd.DataFrame(sunburst_data)
+                            # Prepare sunburst data (reuse treemap_data structure)
+                            sunburst_data = []
+                            for ct in complaint_types:
+                                for col in df.columns:
+                                    if col != 'Grand Total' and '_' in col:
+                                        parts = col.rsplit('_', 1)
+                                        if len(parts) == 2:
+                                            dept, status = parts
+                                            value = df_viz.loc[ct, col]
+                                            if value > 0:
+                                                sunburst_data.append({
+                                                    'Complaint Type': ct,
+                                                    'Department': dept,
+                                                    'Status': status,
+                                                    'Count': value
+                                                })
                             
-                            fig_sunburst = px.sunburst(
-                                df_sunburst,
-                                path=['Complaint Type', 'Department', 'Status'],
-                                values='Count',
-                                color='Count',
-                                color_continuous_scale='Viridis',
-                                hover_data={'Count': ':,'}
-                            )
-                            
-                            fig_sunburst.update_traces(
-                                textinfo='label+percent parent',
-                                hovertemplate='<b>%{label}</b><br>Count: %{value:,}<br>Percentage: %{percentParent:.1f}%<extra></extra>'
-                            )
-                            
-                            fig_sunburst.update_layout(
-                                title=dict(
-                                    text="<b>Hierarchical Complaint Distribution</b><br><sub>Complaint Type → Department → Status</sub>",
-                                    font=dict(size=21),
-                                    x=0.5,
-                                    xanchor='center'
-                                ),
-                                height=700,
-                                margin=dict(t=100, l=0, r=0, b=0)
-                            )
-                            
-                            st.plotly_chart(fig_sunburst, use_container_width=True)
-       
-                        # Show last loaded timestamp
-                    if "last_report_time_tab2" in st.session_state:
-                        st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
-                    else:
-                        st.caption("Last loaded: Not generated yet")
+                            if sunburst_data:
+                                df_sunburst = pd.DataFrame(sunburst_data)
+                                
+                                fig_sunburst = px.sunburst(
+                                    df_sunburst,
+                                    path=['Complaint Type', 'Department', 'Status'],
+                                    values='Count',
+                                    color='Count',
+                                    color_continuous_scale='Viridis',
+                                    hover_data={'Count': ':,'}
+                                )
+                                
+                                fig_sunburst.update_traces(
+                                    textinfo='label+percent parent',
+                                    hovertemplate='<b>%{label}</b><br>Count: %{value:,}<br>Percentage: %{percentParent:.1f}%<extra></extra>'
+                                )
+                                
+                                fig_sunburst.update_layout(
+                                    title=dict(
+                                        text="<b>Hierarchical Complaint Distribution</b><br><sub>Complaint Type → Department → Status</sub>",
+                                        font=dict(size=21),
+                                        x=0.5,
+                                        xanchor='center'
+                                    ),
+                                    height=700,
+                                    margin=dict(t=100, l=0, r=0, b=0)
+                                )
+                                
+                                st.plotly_chart(fig_sunburst, use_container_width=True)
 
 
 
