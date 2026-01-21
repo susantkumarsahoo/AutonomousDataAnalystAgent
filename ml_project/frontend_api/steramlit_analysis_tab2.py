@@ -2129,7 +2129,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.session_state.dataset_path = None
 
             # Load and cache the Excel data ONCE
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def load_excel_data(file_path):
                 """Load and cache Excel data"""
                 df = pd.read_excel(file_path)
@@ -2137,101 +2137,101 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 return df
 
             # Filter monthly data (cached)
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_month_data(df, selected_month):
                 """Filter data for selected month"""
                 return df[df['DATE'].dt.to_period('M') == selected_month]
 
             # Enhanced report functions
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def generate_complaint_report(month_df):
                 result = month_df['COMPLAINT TYPE'].value_counts().reset_index()
                 result.columns = ['Complaint Type', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def generate_date_report(month_df):
                 result = month_df['DATE'].value_counts().sort_index().reset_index()
                 result.columns = ['Date', 'Count']
                 result['Day of Week'] = pd.to_datetime(result['Date']).dt.day_name()
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def generate_shift_duty_report(month_df):
                 result = month_df['SHIFT DUTY'].value_counts().reset_index()
                 result.columns = ['Shift Duty', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def generate_monthly_qrc_data(month_df):
                 result = month_df['QUERY/REQUEST/COMPLAINT'].value_counts().reset_index()
                 result.columns = ['QRC Type', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_section_data(month_df):
                 result = month_df['SECTION'].value_counts().reset_index()
                 result.columns = ['Section', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_subdivision_data(month_df):
                 result = month_df['SUB-DIVISION'].value_counts().reset_index()
                 result.columns = ['Sub-Division', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_circle_data(month_df):
                 result = month_df['CIRCLE'].value_counts().reset_index()
                 result.columns = ['Circle', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_consumer_number_data(month_df):
                 result = month_df['CONSUMER NUMBER'].value_counts().reset_index()
                 result.columns = ['Consumer Number', 'Count']
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_mobile_number_data(month_df):
                 result = month_df['MOBILE NUMB'].value_counts().reset_index()
                 result.columns = ['Mobile Number', 'Count']
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_dept_data(month_df):
                 result = month_df['DEPT'].value_counts().reset_index()
                 result.columns = ['Department', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_status_data(month_df):
                 result = month_df['CLOSED/OPEN'].value_counts().reset_index()
                 result.columns = ['Status', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_pscc_data(month_df):
                 result = month_df['PSCC/FG/TO'].value_counts().reset_index()
                 result.columns = ['PSCC Type', 'Count']
                 result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_minute_data(month_df):
                 result = month_df['MINUTE'].value_counts().reset_index()
                 result.columns = ['Minute', 'Count']
                 return result
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_monthly_remarks_analysis(month_df):
                 """Analyze REMARKS column for patterns"""
                 temp_df = month_df.copy()
@@ -2257,7 +2257,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     'Total Remarks': len(temp_df)
                 }
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_performance_metrics(month_df):
                 """Calculate advanced performance metrics"""
                 metrics = {}
@@ -2279,7 +2279,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 
                 return metrics
 
-            @st.cache_data(ttl=600)
+            @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
             def get_trend_analysis(month_df):
                 """Analyze trends over the month"""
                 daily_counts = month_df.groupby(month_df['DATE'].dt.date).size().reset_index()
