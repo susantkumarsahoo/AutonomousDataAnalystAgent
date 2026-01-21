@@ -175,11 +175,8 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     dept_status_cols = [col for col in df.columns if col != 'Grand Total']
                     
                     # Calculate summary statistics
-                    total_complaints = df['Grand Total_'].sum()
-
-
-
-                    
+                    total_complaints = df['Grand Total_'].sum()/2
+                   
                     # Separate open and closed
                     open_cols = [col for col in df.columns if 'Open' in col]
                     closed_cols = [col for col in df.columns if 'Closed' in col]
@@ -236,7 +233,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 showlegend=True,
                                 legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5)
                             )
-                            st.plotly_chart(fig_pie, use_container_width=True)
+                            st.plotly_chart(fig_pie, width="stretch")
                         
                         # 2. DONUT CHART - Department-wise Distribution
                         with col_pie2:
@@ -266,7 +263,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     annotations=[dict(text=f'<b>{int(total_complaints)}</b><br>Total', 
                                                     x=0.5, y=0.5, font_size=20, showarrow=False)]
                                 )
-                                st.plotly_chart(fig_donut, use_container_width=True)
+                                st.plotly_chart(fig_donut, width="stretch")
                         
                         # 3. BAR CHART - Stacked by Complaint Type
                         st.subheader("Complaints by Type - Stacked View")
@@ -314,7 +311,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                             xaxis=dict(tickangle=-45)
                         )
-                        st.plotly_chart(fig_bar_stacked, use_container_width=True)
+                        st.plotly_chart(fig_bar_stacked, width="stretch")
                     
                     with viz_tab2:
                         st.subheader("Department Performance Analysis")
@@ -369,7 +366,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 hovermode='x unified',
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                             )
-                            st.plotly_chart(fig_dept_grouped, use_container_width=True)
+                            st.plotly_chart(fig_dept_grouped, width="stretch")
                             
                             # 5. HEATMAP - Complaint Type vs Department
                             st.subheader("Complaint Distribution Matrix")
@@ -404,7 +401,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 xaxis=dict(side='bottom'),
                                 yaxis=dict(tickmode='linear')
                             )
-                            st.plotly_chart(fig_heatmap, use_container_width=True)
+                            st.plotly_chart(fig_heatmap, width="stretch")
                             
                             # Department Efficiency Score
                             st.subheader("Department Efficiency Metrics")
@@ -442,7 +439,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 height=500,
                                 hovermode='x'
                             )
-                            st.plotly_chart(fig_efficiency, use_container_width=True)
+                            st.plotly_chart(fig_efficiency, width="stretch")
                     
                     with viz_tab3:
                         st.subheader("Complaint Type Deep Dive")
@@ -520,7 +517,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             height=550,
                             yaxis=dict(autorange="reversed")
                         )
-                        st.plotly_chart(fig_top, use_container_width=True)
+                        st.plotly_chart(fig_top, width="stretch")
                     
                     with viz_tab4:
                         st.subheader("Advanced Analytical Views")
@@ -588,7 +585,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 xaxis=dict(tickangle=-45),
                                 yaxis=dict(range=[0, 100])
                             )
-                            st.plotly_chart(fig_mosaic, use_container_width=True)
+                            st.plotly_chart(fig_mosaic, width="stretch")
                         
                         # Sunburst Chart
                         st.subheader("Interactive Sunburst Visualization")
@@ -628,7 +625,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 textinfo="label+value+percent parent",
                                 textfont=dict(size=11)
                             )
-                            st.plotly_chart(fig_sunburst, use_container_width=True)
+                            st.plotly_chart(fig_sunburst, width="stretch")
                         
                         # Bubble Chart - Department Performance
                         st.subheader("Department Performance Bubble Chart")
@@ -672,7 +669,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 yaxis_title="<b>Closure Rate (%)</b>",
                                 yaxis=dict(range=[0, 105])
                             )
-                            st.plotly_chart(fig_bubble, use_container_width=True)
+                            st.plotly_chart(fig_bubble, width="stretch")
                     
                     st.divider()
                     
@@ -695,7 +692,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         )
                     
                     # Display dataframe
-                    st.dataframe(df, use_container_width=True, height=400)
+                    st.dataframe(df, width="stretch", height=400)
                     
                     logger.info(f"Tab 2: Month wise report generated successfully | month={month_str}")
                     
@@ -721,6 +718,9 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
             else:
                 st.caption("Last loaded: Not generated yet")
+
+
+
 
 
 
@@ -863,18 +863,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 
                 if error is None and df is not None:
                     st.success("✅ Report generated successfully!")
-                    
-                    # Display metrics
-                    col_m1, col_m2, col_m3 = st.columns(3)
-                    with col_m1:
-                        st.metric("Total Records", len(df))
-                    with col_m2:
-                        st.metric("Quarters Covered", total_quarters)
-                    with col_m3:
-                        st.metric("Columns", len(df.columns))
-                    
-                    st.divider()
-                    
+                                        
                     # ========================================
                     # VISUALIZATIONS SECTION
                     # ========================================
@@ -899,7 +888,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         st.subheader("Overview Dashboard")
                         
                         # Calculate summary statistics
-                        total_complaints = df.loc['Grand Total', 'Grand Total'] if 'Grand Total' in df.columns else df.sum().sum()
+                        total_complaints = df.loc['Grand Total', 'Grand Total'] if 'Grand Total' in df.columns else df.sum().sum()/4
                         
                         # Separate open and closed
                         open_cols = [col for col in df.columns if 'Open' in col]
@@ -909,7 +898,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         total_closed = df_viz[closed_cols].sum().sum() if closed_cols else 0
                         
                         # KPI Cards
-                        kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+                        kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
                         with kpi_col1:
                             st.metric("📊 Total Complaints", f"{int(total_complaints):,}")
                         with kpi_col2:
@@ -919,7 +908,14 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             st.metric("🔴 Open", f"{int(total_open):,}", 
                                     delta=f"-{(total_open/total_complaints*100):.1f}%" if total_complaints > 0 else "0%",
                                     delta_color="inverse")
-                        
+                            
+                        with kpi_col4:
+                            closure_rate = (total_closed/total_complaints*100) if total_complaints > 0 else 0
+                            st.metric("✅ Closure Rate", f"{closure_rate:.1f}%",
+                                    delta="Good" if closure_rate >= 95 else "Monitor",
+                                    delta_color="normal" if closure_rate >= 95 else "inverse")
+                                        
+                                                   
                         # Pie Chart: Open vs Closed
                         col_pie1, col_pie2 = st.columns(2)
                         
@@ -938,7 +934,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 showlegend=True,
                                 legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5)
                             )
-                            st.plotly_chart(fig_pie, use_container_width=True)
+                            st.plotly_chart(fig_pie, width="stretch")
                         
                         with col_pie2:
                             # Department-wise total complaints
@@ -964,7 +960,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     showlegend=True,
                                     legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5)
                                 )
-                                st.plotly_chart(fig_dept_pie, use_container_width=True)
+                                st.plotly_chart(fig_dept_pie, width="stretch")
                     
                     with viz_tab2:
                         st.subheader("🔄 Open vs Closed Analysis")
@@ -1011,7 +1007,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             hovermode='x unified',
                             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                         )
-                        st.plotly_chart(fig_stacked, use_container_width=True)
+                        st.plotly_chart(fig_stacked, width="stretch")
                         
                         # Closure rate by complaint type
                         closure_rates = []
@@ -1042,7 +1038,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             height=500,
                             hovermode='x'
                         )
-                        st.plotly_chart(fig_closure, use_container_width=True)
+                        st.plotly_chart(fig_closure, width="stretch")
                     
                     with viz_tab3:
                         st.subheader("🏢 Department-wise Analysis")
@@ -1092,7 +1088,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 hovermode='x unified',
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                             )
-                            st.plotly_chart(fig_dept_grouped, use_container_width=True)
+                            st.plotly_chart(fig_dept_grouped, width="stretch")
                             
                             # Department efficiency heatmap
                             dept_complaint_matrix = []
@@ -1121,7 +1117,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 yaxis_title="Complaint Type",
                                 height=500
                             )
-                            st.plotly_chart(fig_heatmap, use_container_width=True)
+                            st.plotly_chart(fig_heatmap, width="stretch")
                     
                     with viz_tab4:
                         st.subheader("📋 Complaint Type Analysis")
@@ -1151,7 +1147,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             height=500,
                             yaxis=dict(autorange="reversed")
                         )
-                        st.plotly_chart(fig_top, use_container_width=True)
+                        st.plotly_chart(fig_top, width="stretch")
                         
                         # Sunburst chart for hierarchical view
                         sunburst_data = []
@@ -1180,7 +1176,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 title="Hierarchical View: Complaint Type → Department → Status"
                             )
                             fig_sunburst.update_layout(height=600)
-                            st.plotly_chart(fig_sunburst, use_container_width=True)
+                            st.plotly_chart(fig_sunburst, width="stretch")
                     
                     st.divider()
                     
@@ -1202,7 +1198,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         )
                     
                     # Display dataframe
-                    st.dataframe(df, use_container_width=True, height=400)
+                    st.dataframe(df, width="stretch", height=400)
                     
                     logger.info(
                         f"Tab 2: Quarterly report generated | "
@@ -1349,7 +1345,8 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         df_viz = df[df.index != 'Grand Total'].copy()
                         
                         # Calculate summary statistics
-                        total_complaints = df.loc['Grand Total', 'Grand Total'] if 'Grand Total' in df.columns else df.sum().sum()
+                        total_complaints = df.loc[df.index == 'Grand Total', 'Grand Total'].values[0] if 'Grand Total' in df.columns else df.sum().sum() / 4
+
                         
                         # Separate open and closed
                         open_cols = [col for col in df.columns if 'Open' in col]
@@ -1426,7 +1423,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                         font=dict(size=13)
                                     )
                                 )
-                                st.plotly_chart(fig_pie, use_container_width=True)
+                                st.plotly_chart(fig_pie, width="stretch")
                             
                             # 2. DONUT CHART - Department-wise Distribution
                             with col_viz2:
@@ -1475,7 +1472,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             showarrow=False
                                         )]
                                     )
-                                    st.plotly_chart(fig_donut, use_container_width=True)
+                                    st.plotly_chart(fig_donut, width="stretch")
                             
                             # 3. STACKED BAR CHART - Complaints by Type
                             st.subheader("Complaint Type Analysis")
@@ -1540,7 +1537,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 ),
                                 xaxis=dict(tickangle=-45, tickfont=dict(size=11))
                             )
-                            st.plotly_chart(fig_bar_stacked, use_container_width=True)
+                            st.plotly_chart(fig_bar_stacked, width="stretch")
                             
                             # Closure Rate by Complaint Type
                             st.subheader("Closure Efficiency Analysis")
@@ -1582,7 +1579,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 hovermode='x',
                                 xaxis=dict(tickangle=-45, tickfont=dict(size=11))
                             )
-                            st.plotly_chart(fig_closure, use_container_width=True)
+                            st.plotly_chart(fig_closure, width="stretch")
                         
                         with viz_tab2:
                             st.subheader("Department Performance Metrics")
@@ -1656,7 +1653,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                         font=dict(size=14)
                                     )
                                 )
-                                st.plotly_chart(fig_dept_grouped, use_container_width=True)
+                                st.plotly_chart(fig_dept_grouped, width="stretch")
                                 
                                 # 5. HEATMAP - Department vs Complaint Type
                                 st.subheader("Complaint Distribution Matrix")
@@ -1699,7 +1696,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     xaxis=dict(side='bottom', tickfont=dict(size=12)),
                                     yaxis=dict(tickmode='linear', tickfont=dict(size=11))
                                 )
-                                st.plotly_chart(fig_heatmap, use_container_width=True)
+                                st.plotly_chart(fig_heatmap, width="stretch")
                                 
                                 # Department Efficiency Metrics
                                 st.subheader("Department Efficiency Score")
@@ -1750,7 +1747,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     height=550,
                                     hovermode='x'
                                 )
-                                st.plotly_chart(fig_efficiency, use_container_width=True)
+                                st.plotly_chart(fig_efficiency, width="stretch")
                         
                         with viz_tab3:
                             st.subheader("Complaint Type Deep Analysis")
@@ -1795,7 +1792,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     textfont=dict(size=13, family='Arial'),
                                     marker=dict(line=dict(width=2, color='white'))
                                 )
-                                st.plotly_chart(fig_treemap, use_container_width=True)
+                                st.plotly_chart(fig_treemap, width="stretch")
                             
                             # Bubble Chart - Department Performance
                             st.subheader("Department Performance Bubble Analysis")
@@ -1844,7 +1841,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                         tickfont=dict(size=12)
                                     )
                                 )
-                                st.plotly_chart(fig_bubble, use_container_width=True)
+                                st.plotly_chart(fig_bubble, width="stretch")
                             
                             # Waterfall Chart - Status Breakdown
                             st.subheader("Complaint Status Waterfall")
@@ -1894,7 +1891,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 xaxis_title="<b>Status Category</b>",
                                 yaxis_title="<b>Number of Complaints</b>"
                             )
-                            st.plotly_chart(fig_waterfall, use_container_width=True)
+                            st.plotly_chart(fig_waterfall, width="stretch")
 
                             # Top Complaint Types
                             st.subheader("Top Complaint Rankings")
@@ -1932,7 +1929,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 height=600,
                                 yaxis=dict(autorange="reversed", tickfont=dict(size=11))
                             )
-                            st.plotly_chart(fig_top, use_container_width=True)
+                            st.plotly_chart(fig_top, width="stretch")
                         
                         
                         with viz_tab4:
@@ -2007,7 +2004,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
                                     yaxis=dict(range=[0, 100])
                                 )
-                                st.plotly_chart(fig_mosaic, use_container_width=True)
+                                st.plotly_chart(fig_mosaic, width="stretch")
                             
                             # Sunburst Chart
                             st.subheader("Interactive Sunburst Hierarchy")
@@ -2057,7 +2054,63 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                     margin=dict(t=100, l=0, r=0, b=0)
                                 )
                                 
-                                st.plotly_chart(fig_sunburst, use_container_width=True)
+                                st.plotly_chart(fig_sunburst, width="stretch")
+                                
+                        st.divider()
+                        
+                        # ========================================
+                        # DATA TABLE SECTION
+                        # ========================================
+                        st.header("📋 Detailed Data Table")
+                        
+                        # Add download and export options
+                        col_export1, col_export2, col_export3 = st.columns([1, 1, 1])
+                        
+                        with col_export2:
+                            csv = df.to_csv(index=True).encode('utf-8')
+                            st.download_button(
+                                label="📥 Download CSV Report",
+                                data=csv,
+                                file_name=f"finance_year_report_{date_range.replace(' ', '_').replace('/', '-')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                                type="primary"
+                            )
+                        
+                        # Display dataframe with enhanced styling
+                        st.dataframe(
+                            df,
+                            width="stretch",
+                            height=450
+                        )
+                        
+                        logger.info(f"Tab 2: Finance year report generated | range={date_range}")
+                        
+                        # Store last generated time
+                        st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        # Reset flag after successful generation
+                        st.session_state.generate_report_tab2 = False
+                        
+                    else:
+                        if status_code:
+                            st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                            logger.error(f"Tab 2: API request failed | status_code={status_code}")
+                        else:
+                            st.error(f"❌ Error: {error}")
+                            logger.error(f"Tab 2: Error - {error}")
+                        
+                        # Reset flag after error
+                        st.session_state.generate_report_tab2 = False
+
+                # Show last loaded timestamp
+                if "last_report_time_tab2" in st.session_state:
+                    st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
+                else:
+                    st.caption("Last loaded: Not generated yet")                                
+                                
+                                
+                                
 
 
 
@@ -2277,7 +2330,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                         st.session_state.report_generated = False
 
                     st.markdown("---")
-                    generate_button = st.button("🔍 Generate Comprehensive Report", type="primary", use_container_width=True, key='tab2_generate_btn')
+                    generate_button = st.button("🔍 Generate Comprehensive Report", type="primary", width="stretch", key='tab2_generate_btn')
 
                     if generate_button or st.session_state.report_generated:
                         if generate_button:
@@ -2370,7 +2423,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             )
                                             fig.update_traces(textposition='inside', textinfo='percent+label')
                                             fig.update_layout(height=500)
-                                            st.plotly_chart(fig, use_container_width=True, key='complaint_pie_main')
+                                            st.plotly_chart(fig, width="stretch", key='complaint_pie_main')
                                         
                                         with col2:
                                             st.markdown("#### 🔄 Status Overview")
@@ -2391,7 +2444,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             )
                                             fig.update_traces(textposition='inside', textinfo='percent+label')
                                             fig.update_layout(height=500)
-                                            st.plotly_chart(fig, use_container_width=True, key='status_pie_main')
+                                            st.plotly_chart(fig, width="stretch", key='status_pie_main')
                                         
                                         st.markdown("---")
                                         
@@ -2401,7 +2454,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("#### ⏰ Shift Distribution")
                                             st.dataframe(
                                                 shift_report.style.background_gradient(subset=['Count'], cmap='Greens'),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=350
                                             )
                                             
@@ -2416,7 +2469,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             )
                                             fig.update_traces(texttemplate='%{text}', textposition='outside')
                                             fig.update_layout(height=450)
-                                            st.plotly_chart(fig, use_container_width=True, key='shift_bar_main')
+                                            st.plotly_chart(fig, width="stretch", key='shift_bar_main')
                                         
                                         with col4:
                                             st.markdown("#### 📝 QRC Analysis")
@@ -2437,7 +2490,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             )
                                             fig.update_traces(texttemplate='%{text}', textposition='outside')
                                             fig.update_layout(height=450)
-                                            st.plotly_chart(fig, use_container_width=True, key='qrc_bar_main')
+                                            st.plotly_chart(fig, width="stretch", key='qrc_bar_main')
 
                                             st.caption(f"Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
                                     
@@ -2458,7 +2511,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 st.markdown("#### 🏘️ Sub-Division Analysis")
                                                 st.dataframe(
                                                     subdivision_report.style.background_gradient(subset=['Count'], cmap='YlOrRd'),
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     height=450
                                                 )
                                                 
@@ -2471,13 +2524,13 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     color_continuous_scale='RdYlGn'
                                                 )
                                                 fig.update_layout(height=500)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with col2:
                                                 st.markdown("#### 🔵 Circle Analysis")
                                                 st.dataframe(
                                                     circle_report.style.background_gradient(subset=['Count'], cmap='Blues'),
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     height=450
                                                 )
                                                 
@@ -2493,7 +2546,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                                 fig.update_traces(texttemplate='%{text}', textposition='outside')
                                                 fig.update_layout(height=500)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             st.markdown("#### 🏢 Section Analysis")
                                             st.dataframe(
@@ -2509,7 +2562,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 st.markdown("#### 🏛️ Department Distribution")
                                                 st.dataframe(
                                                     dept_report.style.background_gradient(subset=['Count'], cmap='Purples'),
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     height=500
                                                 )
                                                 
@@ -2520,13 +2573,13 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     title="Department Hierarchy"
                                                 )
                                                 fig.update_layout(height=600)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with col2:
                                                 st.markdown("#### 📞 PSCC/FG/TO Analysis")
                                                 st.dataframe(
                                                     pscc_report.style.background_gradient(subset=['Count'], cmap='Greens'),
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     height=500
                                                 )
                                                 
@@ -2538,7 +2591,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     hole=0.3
                                                 )
                                                 fig.update_layout(height=600)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                         
                                         elif report_selector == "Contact Information":
                                             col1, col2 = st.columns(2)
@@ -2547,7 +2600,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 st.markdown("#### 👤 Top Consumer Numbers")
                                                 st.dataframe(
                                                     consumer_number_report.head(25).style.background_gradient(subset=['Count'], cmap='YlGnBu'),
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     height=600
                                                 )
                                             
@@ -2555,7 +2608,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 st.markdown("#### 📱 Top Mobile Numbers")
                                                 st.dataframe(
                                                     mobile_number_report.head(25).style.background_gradient(subset=['Count'], cmap='YlOrBr'),
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     height=600
                                                 )
                                         
@@ -2576,7 +2629,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 color_discrete_sequence=['#636EFA']
                                             )
                                             fig.update_layout(height=500)
-                                            st.plotly_chart(fig, use_container_width=True)
+                                            st.plotly_chart(fig, width="stretch")
                                     
                                     # Tab 3: Data Visualizations
                                     with tab3:
@@ -2645,7 +2698,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                                 fig.update_layout(height=600)
                                             
-                                            st.plotly_chart(fig, use_container_width=True)
+                                            st.plotly_chart(fig, width="stretch")
                                         
                                         elif viz_category == "Geographic Insights":
                                             geo_col1, geo_col2 = st.columns(2)
@@ -2663,7 +2716,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                                 fig.update_traces(texttemplate='%{text}', textposition='outside')
                                                 fig.update_layout(height=550)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with geo_col2:
                                                 fig = px.sunburst(
@@ -2673,7 +2726,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     title="Circle Distribution (Sunburst)"
                                                 )
                                                 fig.update_layout(height=550)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             fig = px.bar(
                                                 section_report.head(15),
@@ -2686,7 +2739,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             )
                                             fig.update_traces(texttemplate='%{text}', textposition='outside')
                                             fig.update_layout(height=500, xaxis_tickangle=-45)
-                                            st.plotly_chart(fig, use_container_width=True)
+                                            st.plotly_chart(fig, width="stretch")
                                         
                                         elif viz_category == "Time-based Analysis":
                                             st.markdown("#### 📅 Daily Trends")
@@ -2701,7 +2754,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             )
                                             fig.update_traces(line=dict(width=3), marker=dict(size=8))
                                             fig.update_layout(height=500)
-                                            st.plotly_chart(fig, use_container_width=True)
+                                            st.plotly_chart(fig, width="stretch")
                                             
                                             col1, col2 = st.columns(2)
                                             
@@ -2720,7 +2773,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     color_continuous_scale='Blues'
                                                 )
                                                 fig.update_layout(height=450)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with col2:
                                                 fig = px.bar(
@@ -2734,7 +2787,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                                 fig.update_traces(texttemplate='%{text}', textposition='outside')
                                                 fig.update_layout(height=450)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                         
                                         else:  # Comparative Views
                                             st.markdown("#### 🔄 Multi-dimensional Comparison")
@@ -2750,7 +2803,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     hole=0.4
                                                 )
                                                 fig.update_layout(height=400)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with comp_col2:
                                                 fig = px.pie(
@@ -2763,7 +2816,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     hole=0.4
                                                 )
                                                 fig.update_layout(height=400)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with comp_col3:
                                                 fig = px.pie(
@@ -2774,7 +2827,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     hole=0.4
                                                 )
                                                 fig.update_layout(height=400)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             # Stacked comparison
                                             st.markdown("#### 📊 Department vs Status Comparison")
@@ -2790,7 +2843,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     color_discrete_map={'CLOSED': '#00CC96', 'OPEN': '#EF553B'}
                                                 )
                                                 fig.update_layout(height=500, xaxis_tickangle=-45)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                     
                                     # Tab 4: Remarks & Insights
                                     with tab4:
@@ -2845,7 +2898,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                                 fig.update_traces(textposition='inside', textinfo='percent+label')
                                                 fig.update_layout(height=500)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                         else:
                                             st.info("ℹ️ No specific remarks patterns found in the selected month.")
                                         
@@ -2855,7 +2908,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             sample_remarks_df = month_df[['DATE', 'COMPLAINT TYPE', 'REMARKS']].head(20)
                                             st.dataframe(
                                                 sample_remarks_df.style.set_properties(**{'text-align': 'left'}),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=450
                                             )
                                         else:
@@ -2890,7 +2943,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                         st.markdown("#### 📈 Daily Trend Analysis")
                                         st.dataframe(
                                             trend_data.style.background_gradient(subset=['Count'], cmap='YlOrRd'),
-                                            use_container_width=True,
+                                            width="stretch",
                                             height=400
                                         )
                                         
@@ -2906,7 +2959,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                         mode='lines', name='7-Day Moving Average',
                                                         line=dict(color='red', width=2, dash='dash'))
                                         fig.update_layout(height=550)
-                                        st.plotly_chart(fig, use_container_width=True)
+                                        st.plotly_chart(fig, width="stretch")
                                         
                                         col1, col2 = st.columns(2)
                                         
@@ -2921,7 +2974,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     trend_data['Count'].min()
                                                 ]
                                             })
-                                            st.dataframe(perf_summary, use_container_width=True, height=250)
+                                            st.dataframe(perf_summary, width="stretch", height=250)
                                         
                                         with col2:
                                             if 'avg_resolution_time' in performance_metrics:
@@ -2935,7 +2988,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                         f"{performance_metrics.get('max_resolution_time', 0):.0f}"
                                                     ]
                                                 })
-                                                st.dataframe(time_stats, use_container_width=True, height=250)
+                                                st.dataframe(time_stats, width="stretch", height=250)
                                     
                                                                         # Tab 6: Advanced Filters
                                     # Tab 6: Advanced Filters
@@ -3030,7 +3083,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("---")
                                             st.dataframe(
                                                 filtered_df.style.set_properties(**{'text-align': 'left'}),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=500
                                             )
                                             
@@ -3045,7 +3098,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     data=csv,
                                                     file_name=f'filtered_data_{selected_month}.csv',
                                                     mime='text/csv',
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     key='download_csv_tab6'
                                                 )
                                             
@@ -3062,7 +3115,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                     data=buffer,
                                                     file_name=f'filtered_data_{selected_month}.xlsx',
                                                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                                    use_container_width=True,
+                                                    width="stretch",
                                                     key='download_excel_tab6'
                                                 )
                                         else:
