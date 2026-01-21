@@ -61,6 +61,13 @@ if sys.platform == "win32":
 logger = get_logger(__name__)
 
 
+# Pie Chart , donut chart, mosaic plot, marimekko chart,sunburst chart,sankey diagram,parallel sets,network diagram,polar area chart,Heatmap 
+# multi-line chart, Area Chart by Category, stacked area chart, scatter plot with hue,dot plot by category, Choropleth Map, Dot Density Map
+# Funnel Chart, Mixed Subplots
+# 3d pie chart,3D 3D Bar Chart, 3D Column Chart,3d treemap,3d line plot,3D Scatter Plot,3D Histogram,3d bubble chart,3D Grouped Bar Chart,3d choropleth map
+# JSON Schema Tree,Tree View
+
+
 # ========================================
 # MAIN TAB2 FUNCTION
 # ========================================
@@ -160,7 +167,536 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 
                 if error is None and df is not None:
                     st.success("✅ Report generated successfully!")
+                    
+                    # Prepare data for visualizations
+                    df_viz = df[df.index != 'Grand Total'].copy()
+                    
+                    # Extract department names and statuses from column names
+                    dept_status_cols = [col for col in df.columns if col != 'Grand Total']
+                    
+                    # Calculate summary statistics
+                    total_complaints = df['Grand Total_'].sum()
+
+
+
+                    
+                    # Separate open and closed
+                    open_cols = [col for col in df.columns if 'Open' in col]
+                    closed_cols = [col for col in df.columns if 'Closed' in col]
+                    
+                    total_open = df_viz[open_cols].sum().sum() if open_cols else 0
+                    total_closed = df_viz[closed_cols].sum().sum() if closed_cols else 0
+                    
+                    # Display KPI Metrics
+                    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+                    with col_m1:
+                        st.metric("📊 Total Complaints", f"{int(total_complaints):,}")
+                    with col_m2:
+                        st.metric("🟢 Closed", f"{int(total_closed):,}")
+                    with col_m3:
+                        st.metric("🔴 Open", f"{int(total_open):,}")
+                    with col_m4:
+                        closure_rate = (total_closed / total_complaints * 100) if total_complaints > 0 else 0
+                        st.metric("✅ Closure Rate", f"{closure_rate:.1f}%")
+                    
+                    st.divider()
+                    
+                    # ========================================
+                    # VISUALIZATIONS SECTION
+                    # ========================================
+                    st.header("📈 Visual Analytics Dashboard")
+                    
+                    # Create tabs for different visualization categories
+                    viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+                        "🎯 Status Overview", 
+                        "🏢 Department Insights", 
+                        "📋 Complaint Analysis",
+                        "🔥 Advanced Views"
+                    ])
+                    
+                    with viz_tab1:
+                        st.subheader("Status Distribution Overview")
+                        
+                        col_pie1, col_pie2 = st.columns(2)
+                        
+                        # 1. PIE CHART - Open vs Closed
+                        with col_pie1:
+                            fig_pie = go.Figure(data=[go.Pie(
+                                labels=['Closed', 'Open'],
+                                values=[total_closed, total_open],
+                                marker=dict(colors=['#00CC96', '#EF553B']),
+                                textinfo='label+percent+value',
+                                textfont_size=15,
+                                pull=[0.05, 0.1]  # Explode the slices slightly
+                            )])
+                            fig_pie.update_layout(
+                                title=dict(text="<b>Complaint Status Distribution</b><br><sub>Pie Chart</sub>", 
+                                        font=dict(size=18), x=0.5, xanchor='center'),
+                                height=450,
+                                showlegend=True,
+                                legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5)
+                            )
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                        
+                        # 2. DONUT CHART - Department-wise Distribution
+                        with col_pie2:
+                            dept_totals = {}
+                            for col in df.columns:
+                                if col != 'Grand Total' and '_' in col:
+                                    dept = col.split('_')[0]
+                                    if dept not in dept_totals:
+                                        dept_totals[dept] = 0
+                                    dept_totals[dept] += df_viz[col].sum()
+                            
+                            if dept_totals:
+                                fig_donut = go.Figure(data=[go.Pie(
+                                    labels=list(dept_totals.keys()),
+                                    values=list(dept_totals.values()),
+                                    hole=0.5,  # Creates donut effect
+                                    textinfo='label+percent',
+                                    textfont_size=13,
+                                    marker=dict(line=dict(color='white', width=2))
+                                )])
+                                fig_donut.update_layout(
+                                    title=dict(text="<b>Department Distribution</b><br><sub>Donut Chart</sub>", 
+                                            font=dict(size=18), x=0.5, xanchor='center'),
+                                    height=450,
+                                    showlegend=True,
+                                    legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
+                                    annotations=[dict(text=f'<b>{int(total_complaints)}</b><br>Total', 
+                                                    x=0.5, y=0.5, font_size=20, showarrow=False)]
+                                )
+                                st.plotly_chart(fig_donut, use_container_width=True)
+                        
+                        # 3. BAR CHART - Stacked by Complaint Type
+                        st.subheader("Complaints by Type - Stacked View")
+                        
+                        complaint_types = df_viz.index.tolist()
+                        open_data = []
+                        closed_data = []
+                        
+                        for idx in complaint_types:
+                            open_sum = df_viz.loc[idx, open_cols].sum() if open_cols else 0
+                            closed_sum = df_viz.loc[idx, closed_cols].sum() if closed_cols else 0
+                            open_data.append(open_sum)
+                            closed_data.append(closed_sum)
+                        
+                        fig_bar_stacked = go.Figure()
+                        fig_bar_stacked.add_trace(go.Bar(
+                            name='Closed',
+                            x=complaint_types,
+                            y=closed_data,
+                            marker_color='#00CC96',
+                            text=closed_data,
+                            textposition='inside',
+                            textfont=dict(color='white', size=12, family='Arial Black'),
+                            hovertemplate='<b>%{x}</b><br>Closed: %{y}<extra></extra>'
+                        ))
+                        fig_bar_stacked.add_trace(go.Bar(
+                            name='Open',
+                            x=complaint_types,
+                            y=open_data,
+                            marker_color='#EF553B',
+                            text=open_data,
+                            textposition='inside',
+                            textfont=dict(color='white', size=12, family='Arial Black'),
+                            hovertemplate='<b>%{x}</b><br>Open: %{y}<extra></extra>'
+                        ))
+                        
+                        fig_bar_stacked.update_layout(
+                            title=dict(text="<b>Complaint Status by Type</b><br><sub>Stacked Bar Chart</sub>", 
+                                    font=dict(size=20), x=0.5, xanchor='center'),
+                            barmode='stack',
+                            xaxis_title="Complaint Type",
+                            yaxis_title="Number of Complaints",
+                            height=550,
+                            hovermode='x unified',
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            xaxis=dict(tickangle=-45)
+                        )
+                        st.plotly_chart(fig_bar_stacked, use_container_width=True)
+                    
+                    with viz_tab2:
+                        st.subheader("Department Performance Analysis")
+                        
+                        # Create department comparison
+                        dept_open_closed = {}
+                        for col in df.columns:
+                            if col != 'Grand Total' and '_' in col:
+                                dept, status = col.rsplit('_', 1)
+                                if dept not in dept_open_closed:
+                                    dept_open_closed[dept] = {'Open': 0, 'Closed': 0}
+                                if 'Open' in status:
+                                    dept_open_closed[dept]['Open'] += df_viz[col].sum()
+                                elif 'Closed' in status:
+                                    dept_open_closed[dept]['Closed'] += df_viz[col].sum()
+                        
+                        if dept_open_closed:
+                            depts = list(dept_open_closed.keys())
+                            open_vals = [dept_open_closed[d]['Open'] for d in depts]
+                            closed_vals = [dept_open_closed[d]['Closed'] for d in depts]
+                            
+                            # 4. GROUPED BAR CHART - Department Comparison
+                            fig_dept_grouped = go.Figure()
+                            fig_dept_grouped.add_trace(go.Bar(
+                                name='Open',
+                                x=depts,
+                                y=open_vals,
+                                marker=dict(color='#EF553B', line=dict(color='darkred', width=1.5)),
+                                text=open_vals,
+                                textposition='outside',
+                                textfont=dict(size=13, family='Arial Black'),
+                                hovertemplate='<b>%{x}</b><br>Open: %{y}<extra></extra>'
+                            ))
+                            fig_dept_grouped.add_trace(go.Bar(
+                                name='Closed',
+                                x=depts,
+                                y=closed_vals,
+                                marker=dict(color='#00CC96', line=dict(color='darkgreen', width=1.5)),
+                                text=closed_vals,
+                                textposition='outside',
+                                textfont=dict(size=13, family='Arial Black'),
+                                hovertemplate='<b>%{x}</b><br>Closed: %{y}<extra></extra>'
+                            ))
+                            
+                            fig_dept_grouped.update_layout(
+                                title=dict(text="<b>Department Performance: Open vs Closed</b><br><sub>Grouped Bar Chart</sub>", 
+                                        font=dict(size=20), x=0.5, xanchor='center'),
+                                xaxis_title="Department",
+                                yaxis_title="Number of Complaints",
+                                barmode='group',
+                                height=550,
+                                hovermode='x unified',
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                            )
+                            st.plotly_chart(fig_dept_grouped, use_container_width=True)
+                            
+                            # 5. HEATMAP - Complaint Type vs Department
+                            st.subheader("Complaint Distribution Matrix")
+                            
+                            dept_complaint_matrix = []
+                            for ct in complaint_types:
+                                row_data = []
+                                for dept in depts:
+                                    dept_cols = [col for col in df.columns if col.startswith(dept + '_')]
+                                    total = df_viz.loc[ct, dept_cols].sum() if dept_cols else 0
+                                    row_data.append(total)
+                                dept_complaint_matrix.append(row_data)
+                            
+                            fig_heatmap = go.Figure(data=go.Heatmap(
+                                z=dept_complaint_matrix,
+                                x=depts,
+                                y=complaint_types,
+                                colorscale='YlOrRd',
+                                text=dept_complaint_matrix,
+                                texttemplate='<b>%{text}</b>',
+                                textfont={"size": 12, "family": "Arial Black"},
+                                colorbar=dict(title="<b>Count</b>", titleside='right'),
+                                hovertemplate='<b>Type:</b> %{y}<br><b>Dept:</b> %{x}<br><b>Count:</b> %{z}<extra></extra>'
+                            ))
+                            
+                            fig_heatmap.update_layout(
+                                title=dict(text="<b>Complaint Type vs Department</b><br><sub>Heatmap</sub>", 
+                                        font=dict(size=20), x=0.5, xanchor='center'),
+                                xaxis_title="<b>Department</b>",
+                                yaxis_title="<b>Complaint Type</b>",
+                                height=600,
+                                xaxis=dict(side='bottom'),
+                                yaxis=dict(tickmode='linear')
+                            )
+                            st.plotly_chart(fig_heatmap, use_container_width=True)
+                            
+                            # Department Efficiency Score
+                            st.subheader("Department Efficiency Metrics")
+                            
+                            dept_efficiency = []
+                            for dept in depts:
+                                total = open_vals[depts.index(dept)] + closed_vals[depts.index(dept)]
+                                closed = closed_vals[depts.index(dept)]
+                                efficiency = (closed / total * 100) if total > 0 else 0
+                                dept_efficiency.append(efficiency)
+                            
+                            fig_efficiency = go.Figure()
+                            fig_efficiency.add_trace(go.Bar(
+                                x=depts,
+                                y=dept_efficiency,
+                                marker=dict(
+                                    color=dept_efficiency,
+                                    colorscale='RdYlGn',
+                                    showscale=True,
+                                    colorbar=dict(title="<b>Rate %</b>"),
+                                    line=dict(color='black', width=1.5)
+                                ),
+                                text=[f"{eff:.1f}%" for eff in dept_efficiency],
+                                textposition='outside',
+                                textfont=dict(size=14, family='Arial Black'),
+                                hovertemplate='<b>%{x}</b><br>Efficiency: %{y:.1f}%<extra></extra>'
+                            ))
+                            
+                            fig_efficiency.update_layout(
+                                title=dict(text="<b>Department Closure Rate</b><br><sub>Efficiency Bar Chart</sub>", 
+                                        font=dict(size=20), x=0.5, xanchor='center'),
+                                xaxis_title="<b>Department</b>",
+                                yaxis_title="<b>Closure Rate (%)</b>",
+                                yaxis=dict(range=[0, 105]),
+                                height=500,
+                                hovermode='x'
+                            )
+                            st.plotly_chart(fig_efficiency, use_container_width=True)
+                    
+                    with viz_tab3:
+                        st.subheader("Complaint Type Deep Dive")
+                        
+                        # 6. TREEMAP - Hierarchical View
+                        st.subheader("Hierarchical Distribution")
+                        
+                        treemap_data = []
+                        for ct in complaint_types:
+                            for col in df.columns:
+                                if col != 'Grand Total' and '_' in col:
+                                    parts = col.rsplit('_', 1)
+                                    if len(parts) == 2:
+                                        dept, status = parts
+                                        value = df_viz.loc[ct, col]
+                                        if value > 0:
+                                            treemap_data.append({
+                                                'Complaint Type': ct,
+                                                'Department': dept,
+                                                'Status': status,
+                                                'Count': value,
+                                                'Label': f"{ct}<br>{dept}<br>{status}"
+                                            })
+                        
+                        if treemap_data:
+                            df_treemap = pd.DataFrame(treemap_data)
+                            
+                            fig_treemap = px.treemap(
+                                df_treemap,
+                                path=['Complaint Type', 'Department', 'Status'],
+                                values='Count',
+                                color='Count',
+                                color_continuous_scale='Viridis',
+                                title="<b>Complaint Distribution Treemap</b><br><sub>Complaint Type → Department → Status</sub>"
+                            )
+                            fig_treemap.update_layout(
+                                height=650,
+                                title=dict(font=dict(size=20), x=0.5, xanchor='center')
+                            )
+                            fig_treemap.update_traces(
+                                textinfo="label+value+percent parent",
+                                textfont=dict(size=12, family='Arial')
+                            )
+                            st.plotly_chart(fig_treemap, use_container_width=True)
+                        
+                        # Top Complaint Types
+                        st.subheader("Top Complaint Types")
+                        
+                        complaint_totals = df_viz.sum(axis=1).sort_values(ascending=False)
+                        top_n = min(10, len(complaint_totals))
+                        
+                        fig_top = go.Figure()
+                        fig_top.add_trace(go.Bar(
+                            x=complaint_totals.head(top_n).values,
+                            y=complaint_totals.head(top_n).index,
+                            orientation='h',
+                            marker=dict(
+                                color=complaint_totals.head(top_n).values,
+                                colorscale='Plasma',
+                                showscale=True,
+                                colorbar=dict(title="<b>Count</b>"),
+                                line=dict(color='black', width=1)
+                            ),
+                            text=complaint_totals.head(top_n).values,
+                            textposition='outside',
+                            textfont=dict(size=13, family='Arial Black'),
+                            hovertemplate='<b>%{y}</b><br>Total: %{x}<extra></extra>'
+                        ))
+                        
+                        fig_top.update_layout(
+                            title=dict(text=f"<b>Top {top_n} Complaint Types</b><br><sub>Horizontal Bar Chart</sub>", 
+                                    font=dict(size=20), x=0.5, xanchor='center'),
+                            xaxis_title="<b>Total Complaints</b>",
+                            yaxis_title="<b>Complaint Type</b>",
+                            height=550,
+                            yaxis=dict(autorange="reversed")
+                        )
+                        st.plotly_chart(fig_top, use_container_width=True)
+                    
+                    with viz_tab4:
+                        st.subheader("Advanced Analytical Views")
+                        
+                        # 7. MOSAIC PLOT (Simulated using stacked bars with percentages)
+                        st.subheader("Complaint Type Composition")
+                        
+                        # Prepare data for mosaic-style visualization
+                        mosaic_data = []
+                        for ct in complaint_types:
+                            ct_total = df_viz.loc[ct].sum()
+                            if ct_total > 0:
+                                for col in df.columns:
+                                    if col != 'Grand Total' and '_' in col:
+                                        parts = col.rsplit('_', 1)
+                                        if len(parts) == 2:
+                                            dept, status = parts
+                                            value = df_viz.loc[ct, col]
+                                            pct = (value / ct_total) * 100
+                                            mosaic_data.append({
+                                                'Complaint Type': ct,
+                                                'Department_Status': f"{dept} - {status}",
+                                                'Count': value,
+                                                'Percentage': pct
+                                            })
+                        
+                        if mosaic_data:
+                            df_mosaic = pd.DataFrame(mosaic_data)
+                            
+                            # Create mosaic-style stacked bar chart
+                            fig_mosaic = go.Figure()
+                            
+                            dept_status_unique = df_mosaic['Department_Status'].unique()
+                            colors = px.colors.qualitative.Set3[:len(dept_status_unique)]
+                            
+                            for idx, ds in enumerate(dept_status_unique):
+                                subset = df_mosaic[df_mosaic['Department_Status'] == ds]
+                                fig_mosaic.add_trace(go.Bar(
+                                    name=ds,
+                                    x=subset['Complaint Type'],
+                                    y=subset['Percentage'],
+                                    text=subset['Count'],
+                                    textposition='inside',
+                                    textfont=dict(size=10, color='white'),
+                                    marker_color=colors[idx % len(colors)],
+                                    hovertemplate='<b>%{x}</b><br>' + ds + '<br>Count: %{text}<br>Percentage: %{y:.1f}%<extra></extra>'
+                                ))
+                            
+                            fig_mosaic.update_layout(
+                                title=dict(text="<b>Complaint Type Composition</b><br><sub>Mosaic Plot (100% Stacked)</sub>", 
+                                        font=dict(size=20), x=0.5, xanchor='center'),
+                                barmode='stack',
+                                xaxis_title="<b>Complaint Type</b>",
+                                yaxis_title="<b>Percentage (%)</b>",
+                                height=600,
+                                hovermode='x unified',
+                                legend=dict(
+                                    orientation="v",
+                                    yanchor="middle",
+                                    y=0.5,
+                                    xanchor="left",
+                                    x=1.02,
+                                    title="<b>Dept - Status</b>"
+                                ),
+                                xaxis=dict(tickangle=-45),
+                                yaxis=dict(range=[0, 100])
+                            )
+                            st.plotly_chart(fig_mosaic, use_container_width=True)
+                        
+                        # Sunburst Chart
+                        st.subheader("Interactive Sunburst Visualization")
+                        
+                        sunburst_data = []
+                        for ct in complaint_types:
+                            for col in df.columns:
+                                if col != 'Grand Total' and '_' in col:
+                                    parts = col.rsplit('_', 1)
+                                    if len(parts) == 2:
+                                        dept, status = parts
+                                        value = df_viz.loc[ct, col]
+                                        if value > 0:
+                                            sunburst_data.append({
+                                                'Complaint Type': ct,
+                                                'Department': dept,
+                                                'Status': status,
+                                                'Count': value
+                                            })
+                        
+                        if sunburst_data:
+                            df_sunburst = pd.DataFrame(sunburst_data)
+                            
+                            fig_sunburst = px.sunburst(
+                                df_sunburst,
+                                path=['Complaint Type', 'Department', 'Status'],
+                                values='Count',
+                                color='Count',
+                                color_continuous_scale='Rainbow',
+                                title="<b>Hierarchical Sunburst Chart</b><br><sub>Click segments to drill down</sub>"
+                            )
+                            fig_sunburst.update_layout(
+                                height=650,
+                                title=dict(font=dict(size=20), x=0.5, xanchor='center')
+                            )
+                            fig_sunburst.update_traces(
+                                textinfo="label+value+percent parent",
+                                textfont=dict(size=11)
+                            )
+                            st.plotly_chart(fig_sunburst, use_container_width=True)
+                        
+                        # Bubble Chart - Department Performance
+                        st.subheader("Department Performance Bubble Chart")
+                        
+                        if dept_open_closed:
+                            bubble_data = []
+                            for dept in depts:
+                                total = dept_open_closed[dept]['Open'] + dept_open_closed[dept]['Closed']
+                                closed = dept_open_closed[dept]['Closed']
+                                efficiency = (closed / total * 100) if total > 0 else 0
+                                bubble_data.append({
+                                    'Department': dept,
+                                    'Total': total,
+                                    'Closed': closed,
+                                    'Open': dept_open_closed[dept]['Open'],
+                                    'Efficiency': efficiency
+                                })
+                            
+                            df_bubble = pd.DataFrame(bubble_data)
+                            
+                            fig_bubble = px.scatter(
+                                df_bubble,
+                                x='Total',
+                                y='Efficiency',
+                                size='Total',
+                                color='Efficiency',
+                                hover_name='Department',
+                                text='Department',
+                                color_continuous_scale='RdYlGn',
+                                size_max=60,
+                                title="<b>Department Performance Analysis</b><br><sub>Bubble size = Total Complaints</sub>"
+                            )
+                            fig_bubble.update_traces(
+                                textposition='top center',
+                                textfont=dict(size=12, family='Arial Black')
+                            )
+                            fig_bubble.update_layout(
+                                height=550,
+                                title=dict(font=dict(size=20), x=0.5, xanchor='center'),
+                                xaxis_title="<b>Total Complaints</b>",
+                                yaxis_title="<b>Closure Rate (%)</b>",
+                                yaxis=dict(range=[0, 105])
+                            )
+                            st.plotly_chart(fig_bubble, use_container_width=True)
+                    
+                    st.divider()
+                    
+                    # ========================================
+                    # DATA TABLE SECTION
+                    # ========================================
+                    st.header("📋 Detailed Data Table")
+                    
+                    # Add download button
+                    col_download1, col_download2, col_download3 = st.columns([1, 1, 1])
+                    with col_download2:
+                        csv = df.to_csv(index=True).encode('utf-8')
+                        st.download_button(
+                            label="📥 Download Report as CSV",
+                            data=csv,
+                            file_name=f"monthly_report_{month_str}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            type="primary"
+                        )
+                    
+                    # Display dataframe
                     st.dataframe(df, use_container_width=True, height=400)
+                    
                     logger.info(f"Tab 2: Month wise report generated successfully | month={month_str}")
                     
                     # Store last generated time
@@ -699,154 +1235,886 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
 
 
 
+                st.divider()
+                # ========================================
+                # SECTION 1: YEAR TO DATE RANGE SELECTION
+                # ========================================
+                st.header("📊 Finance Year Analysis Report")
+                st.caption("Select start year/date and end year/date to view analysis")
 
+                # Initialize session state for selected years and dates
+                if "start_year_tab2" not in st.session_state:
+                    st.session_state.start_year_tab2 = datetime.today().year
 
-            st.divider()
-            # ========================================
-            # SECTION 1: YEAR TO DATE RANGE SELECTION
-            # ========================================
-            st.header("📊 Finance Year Analysis Report")
-            st.caption("Select start year/date and end year/date to view analysis")
+                if "end_year_tab2" not in st.session_state:
+                    st.session_state.end_year_tab2 = datetime.today().year
 
-            # Initialize session state for selected years and dates
-            if "start_year_tab2" not in st.session_state:
-                st.session_state.start_year_tab2 = datetime.today().year
+                if "start_date_tab2" not in st.session_state:
+                    st.session_state.start_date_tab2 = "04-01"
 
-            if "end_year_tab2" not in st.session_state:
-                st.session_state.end_year_tab2 = datetime.today().year
+                if "end_date_tab2" not in st.session_state:
+                    st.session_state.end_date_tab2 = "03-31"
 
-            if "start_date_tab2" not in st.session_state:
-                st.session_state.start_date_tab2 = "04-01"
+                # Initialize flag to track if report should be generated
+                if "generate_report_tab2" not in st.session_state:
+                    st.session_state.generate_report_tab2 = False
 
-            if "end_date_tab2" not in st.session_state:
-                st.session_state.end_date_tab2 = "03-31"
-
-            # Initialize flag to track if report should be generated
-            if "generate_report_tab2" not in st.session_state:
-                st.session_state.generate_report_tab2 = False
-
-            # Create columns for Year selection
-            col1, col2, col3 = st.columns([1, 1, 1])
-                        
-            with col1:
-                # Start Year selector
-                current_year = datetime.today().year
-                start_year = st.selectbox(
-                    "Start Year",
-                    options=list(range(current_year - 10, current_year + 1)),
-                    index=list(range(current_year - 10, current_year + 1)).index(
-                        st.session_state.start_year_tab2
-                    ),
-                    key="start_year_selector_tab2",
-                    help="Choose the starting year"
-                )
-                
-                start_date_obj = st.date_input(
-                    "Start Date",
-                    value=datetime(start_year, 4, 1),  # Default April 1st
-                    key="start_date_selector_tab2",
-                    help="Choose the starting date"
-                )
-                start_date = start_date_obj.strftime("%m-%d")
-
-            with col2:
-                # End Year selector
-                end_year = st.selectbox(
-                    "End Year",
-                    options=list(range(current_year - 10, current_year + 1)),
-                    index=list(range(current_year - 10, current_year + 1)).index(
-                        st.session_state.end_year_tab2
-                    ),
-                    key="end_year_selector_tab2",
-                    help="Choose the ending year"
-                )
-                
-                end_date_obj = st.date_input(
-                    "End Date",
-                    value=datetime(end_year, 3, 31),  # Default March 31st
-                    key="end_date_selector_tab2",
-                    help="Choose the ending date"
-                )
-                end_date = end_date_obj.strftime("%m-%d")
-
-            with col3:
-                st.write("")  # Spacing
-                st.write("")  # Spacing
-                if st.button(
-                    "📊 Generate Report",
-                    type="primary",
-                    use_container_width=True,
-                    key="generate_report_button"
-                ):
-                    # Validate date range
-                    start_full_date = datetime.strptime(f"{start_year}-{start_date}", "%Y-%m-%d")
-                    end_full_date = datetime.strptime(f"{end_year}-{end_date}", "%Y-%m-%d")
-                    
-                    if start_full_date > end_full_date:
-                        st.error("❌ Start date cannot be greater than end date!")
-                    else:
-                        # Update session state when button is clicked
-                        st.session_state.start_year_tab2 = start_year
-                        st.session_state.end_year_tab2 = end_year
-                        st.session_state.start_date_tab2 = start_date
-                        st.session_state.end_date_tab2 = end_date
-                        st.session_state.generate_report_tab2 = True
-
-            # Display selected range
-            date_range = f"{st.session_state.start_year_tab2}-{st.session_state.start_date_tab2} to {st.session_state.end_year_tab2}-{st.session_state.end_date_tab2}"
-            st.info(f"📅 Selected Period: **{date_range}**")
-
-            # Only generate report if button was clicked
-            if st.session_state.generate_report_tab2:
-                with st.spinner("Loading data..."):
-                    # Call your function with dataset_path, start_year, start_date, end_year, end_date
-                    df, error, status_code = fetch_generate_finance_year_wise_open_close_pivot_report(
-                        str(st.session_state.start_year_tab2),
-                        st.session_state.start_date_tab2,
-                        str(st.session_state.end_year_tab2),
-                        st.session_state.end_date_tab2
+                # Create columns for Year selection
+                col1, col2, col3 = st.columns([1, 1, 1])
+                            
+                with col1:
+                    # Start Year selector
+                    current_year = datetime.today().year
+                    start_year = st.selectbox(
+                        "Start Year",
+                        options=list(range(current_year - 10, current_year + 1)),
+                        index=list(range(current_year - 10, current_year + 1)).index(
+                            st.session_state.start_year_tab2
+                        ),
+                        key="start_year_selector_tab2",
+                        help="Choose the starting year"
                     )
-                
-                if error is None and df is not None:
-                    st.success("✅ Report generated successfully!")
                     
-                    # Display metrics if you want
-                    col_m1, col_m2, col_m3 = st.columns(3)
-                    with col_m1:
-                        st.metric("Total Records", len(df))
-                    with col_m2:
-                        years_covered = st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1
-                        st.metric("Years Covered", years_covered)
-                    with col_m3:
-                        st.metric("Columns", len(df.columns))
-                    
-                    # Display dataframe
-                    st.dataframe(df, use_container_width=True, height=400)
-                    logger.info(f"Tab 2: Finance year report generated | range={date_range}")
-                    
-                    # Store last generated time
-                    st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
-                    
-                    # Reset flag after successful generation
-                    st.session_state.generate_report_tab2 = False
-                    
-                else:
-                    if status_code:
-                        st.error(f"❌ Failed to fetch data. Status code: {status_code}")
-                        logger.error(f"Tab 2: API request failed | status_code={status_code}")
-                    else:
-                        st.error(f"❌ Error: {error}")
-                        logger.error(f"Tab 2: Error - {error}")
-                    
-                    # Reset flag after error
-                    st.session_state.generate_report_tab2 = False
+                    start_date_obj = st.date_input(
+                        "Start Date",
+                        value=datetime(start_year, 4, 1),  # Default April 1st
+                        key="start_date_selector_tab2",
+                        help="Choose the starting date"
+                    )
+                    start_date = start_date_obj.strftime("%m-%d")
 
-            # Show last loaded timestamp
-            if "last_report_time_tab2" in st.session_state:
-                st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
-            else:
-                st.caption("Last loaded: Not generated yet")
-                
+                with col2:
+                    # End Year selector
+                    end_year = st.selectbox(
+                        "End Year",
+                        options=list(range(current_year - 10, current_year + 1)),
+                        index=list(range(current_year - 10, current_year + 1)).index(
+                            st.session_state.end_year_tab2
+                        ),
+                        key="end_year_selector_tab2",
+                        help="Choose the ending year"
+                    )
+                    
+                    end_date_obj = st.date_input(
+                        "End Date",
+                        value=datetime(end_year, 3, 31),  # Default March 31st
+                        key="end_date_selector_tab2",
+                        help="Choose the ending date"
+                    )
+                    end_date = end_date_obj.strftime("%m-%d")
+
+                with col3:
+                    st.write("")  # Spacing
+                    st.write("")  # Spacing
+                    if st.button(
+                        "📊 Generate Report",
+                        type="primary",
+                        use_container_width=True,
+                        key="generate_report_button"
+                    ):
+                        # Validate date range
+                        start_full_date = datetime.strptime(f"{start_year}-{start_date}", "%Y-%m-%d")
+                        end_full_date = datetime.strptime(f"{end_year}-{end_date}", "%Y-%m-%d")
+                        
+                        if start_full_date > end_full_date:
+                            st.error("❌ Start date cannot be greater than end date!")
+                        else:
+                            # Update session state when button is clicked
+                            st.session_state.start_year_tab2 = start_year
+                            st.session_state.end_year_tab2 = end_year
+                            st.session_state.start_date_tab2 = start_date
+                            st.session_state.end_date_tab2 = end_date
+                            st.session_state.generate_report_tab2 = True
+
+                # Display selected range
+                date_range = f"{st.session_state.start_year_tab2}-{st.session_state.start_date_tab2} to {st.session_state.end_year_tab2}-{st.session_state.end_date_tab2}"
+                st.info(f"📅 Selected Period: **{date_range}**")
+
+                # Only generate report if button was clicked
+                if st.session_state.generate_report_tab2:
+                    with st.spinner("Loading data..."):
+                        # Call your function with dataset_path, start_year, start_date, end_year, end_date
+                        df, error, status_code = fetch_generate_finance_year_wise_open_close_pivot_report(
+                            str(st.session_state.start_year_tab2),
+                            st.session_state.start_date_tab2,
+                            str(st.session_state.end_year_tab2),
+                            st.session_state.end_date_tab2
+                        )
+                    
+                    if error is None and df is not None:
+                        st.success("✅ Report generated successfully!")
+                        
+                        # Prepare data for visualizations
+                        df_viz = df[df.index != 'Grand Total'].copy()
+                        
+                        # Calculate summary statistics
+                        total_complaints = df.loc['Grand Total', 'Grand Total'] if 'Grand Total' in df.columns else df.sum().sum()
+                        
+                        # Separate open and closed
+                        open_cols = [col for col in df.columns if 'Open' in col]
+                        closed_cols = [col for col in df.columns if 'Closed' in col]
+                        
+                        total_open = df_viz[open_cols].sum().sum() if open_cols else 0
+                        total_closed = df_viz[closed_cols].sum().sum() if closed_cols else 0
+                        
+                        years_covered = st.session_state.end_year_tab2 - st.session_state.start_year_tab2 + 1
+                        
+                        # Display KPI Metrics
+                        col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
+                        with col_m1:
+                            st.metric("📊 Total Complaints", f"{int(total_complaints):,}")
+                        with col_m2:
+                            st.metric("🟢 Closed", f"{int(total_closed):,}")
+                        with col_m3:
+                            st.metric("🔴 Open", f"{int(total_open):,}")
+                        with col_m4:
+                            closure_rate = (total_closed / total_complaints * 100) if total_complaints > 0 else 0
+                            st.metric("✅ Closure Rate", f"{closure_rate:.1f}%")
+                        with col_m5:
+                            st.metric("📅 Years Covered", years_covered)
+                        
+                        st.divider()
+                        
+                        # ========================================
+                        # VISUALIZATIONS SECTION
+                        # ========================================
+                        st.header("📈 Financial Year Analytics Dashboard")
+                        
+                        # Create tabs for different visualization categories
+                        viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+                            "🎯 Status Overview", 
+                            "🏢 Department Analysis", 
+                            "📋 Complaint Breakdown",
+                            "🔥 Advanced Insights"
+                        ])
+                        
+                        with viz_tab1:
+                            st.subheader("Financial Year Status Distribution")
+                            
+                            col_viz1, col_viz2 = st.columns(2)
+                            
+                            # 1. PIE CHART - Open vs Closed
+                            with col_viz1:
+                                fig_pie = go.Figure(data=[go.Pie(
+                                    labels=['Closed', 'Open'],
+                                    values=[total_closed, total_open],
+                                    marker=dict(
+                                        colors=['#00CC96', '#EF553B'],
+                                        line=dict(color='white', width=3)
+                                    ),
+                                    textinfo='label+percent+value',
+                                    textfont=dict(size=16, family='Arial Black'),
+                                    pull=[0.08, 0.12],
+                                    hole=0
+                                )])
+                                fig_pie.update_layout(
+                                    title=dict(
+                                        text="<b>Overall Complaint Status</b><br><sub>Pie Chart Distribution</sub>", 
+                                        font=dict(size=19), 
+                                        x=0.5, 
+                                        xanchor='center'
+                                    ),
+                                    height=480,
+                                    showlegend=True,
+                                    legend=dict(
+                                        orientation="h", 
+                                        yanchor="bottom", 
+                                        y=-0.2, 
+                                        xanchor="center", 
+                                        x=0.5,
+                                        font=dict(size=13)
+                                    )
+                                )
+                                st.plotly_chart(fig_pie, use_container_width=True)
+                            
+                            # 2. DONUT CHART - Department-wise Distribution
+                            with col_viz2:
+                                dept_totals = {}
+                                for col in df.columns:
+                                    if col != 'Grand Total' and '_' in col:
+                                        dept = col.split('_')[0]
+                                        if dept not in dept_totals:
+                                            dept_totals[dept] = 0
+                                        dept_totals[dept] += df_viz[col].sum()
+                                
+                                if dept_totals:
+                                    fig_donut = go.Figure(data=[go.Pie(
+                                        labels=list(dept_totals.keys()),
+                                        values=list(dept_totals.values()),
+                                        hole=0.55,
+                                        textinfo='label+percent',
+                                        textfont=dict(size=14, family='Arial'),
+                                        marker=dict(
+                                            line=dict(color='white', width=3),
+                                            colors=px.colors.qualitative.Set2
+                                        )
+                                    )])
+                                    fig_donut.update_layout(
+                                        title=dict(
+                                            text="<b>Department-wise Distribution</b><br><sub>Donut Chart</sub>", 
+                                            font=dict(size=19), 
+                                            x=0.5, 
+                                            xanchor='center'
+                                        ),
+                                        height=480,
+                                        showlegend=True,
+                                        legend=dict(
+                                            orientation="h", 
+                                            yanchor="bottom", 
+                                            y=-0.2, 
+                                            xanchor="center", 
+                                            x=0.5,
+                                            font=dict(size=13)
+                                        ),
+                                        annotations=[dict(
+                                            text=f'<b>{int(total_complaints):,}</b><br><span style="font-size:14px">Total<br>Complaints</span>', 
+                                            x=0.5, 
+                                            y=0.5, 
+                                            font_size=22, 
+                                            showarrow=False
+                                        )]
+                                    )
+                                    st.plotly_chart(fig_donut, use_container_width=True)
+                            
+                            # 3. STACKED BAR CHART - Complaints by Type
+                            st.subheader("Complaint Type Analysis")
+                            
+                            complaint_types = df_viz.index.tolist()
+                            open_data = []
+                            closed_data = []
+                            
+                            for idx in complaint_types:
+                                open_sum = df_viz.loc[idx, open_cols].sum() if open_cols else 0
+                                closed_sum = df_viz.loc[idx, closed_cols].sum() if closed_cols else 0
+                                open_data.append(open_sum)
+                                closed_data.append(closed_sum)
+                            
+                            fig_bar_stacked = go.Figure()
+                            fig_bar_stacked.add_trace(go.Bar(
+                                name='Closed',
+                                x=complaint_types,
+                                y=closed_data,
+                                marker=dict(
+                                    color='#00CC96',
+                                    line=dict(color='darkgreen', width=1.5)
+                                ),
+                                text=closed_data,
+                                textposition='inside',
+                                textfont=dict(color='white', size=13, family='Arial Black'),
+                                hovertemplate='<b>%{x}</b><br>Closed: %{y:,}<extra></extra>'
+                            ))
+                            fig_bar_stacked.add_trace(go.Bar(
+                                name='Open',
+                                x=complaint_types,
+                                y=open_data,
+                                marker=dict(
+                                    color='#EF553B',
+                                    line=dict(color='darkred', width=1.5)
+                                ),
+                                text=open_data,
+                                textposition='inside',
+                                textfont=dict(color='white', size=13, family='Arial Black'),
+                                hovertemplate='<b>%{x}</b><br>Open: %{y:,}<extra></extra>'
+                            ))
+                            
+                            fig_bar_stacked.update_layout(
+                                title=dict(
+                                    text="<b>Complaint Status by Type</b><br><sub>Stacked Bar Chart</sub>", 
+                                    font=dict(size=21), 
+                                    x=0.5, 
+                                    xanchor='center'
+                                ),
+                                barmode='stack',
+                                xaxis_title="<b>Complaint Type</b>",
+                                yaxis_title="<b>Number of Complaints</b>",
+                                height=580,
+                                hovermode='x unified',
+                                legend=dict(
+                                    orientation="h", 
+                                    yanchor="bottom", 
+                                    y=1.02, 
+                                    xanchor="right", 
+                                    x=1,
+                                    font=dict(size=14)
+                                ),
+                                xaxis=dict(tickangle=-45, tickfont=dict(size=11))
+                            )
+                            st.plotly_chart(fig_bar_stacked, use_container_width=True)
+                            
+                            # Closure Rate by Complaint Type
+                            st.subheader("Closure Efficiency Analysis")
+                            
+                            closure_rates = []
+                            for i in range(len(complaint_types)):
+                                total = closed_data[i] + open_data[i]
+                                rate = (closed_data[i] / total * 100) if total > 0 else 0
+                                closure_rates.append(rate)
+                            
+                            fig_closure = go.Figure()
+                            fig_closure.add_trace(go.Bar(
+                                x=complaint_types,
+                                y=closure_rates,
+                                marker=dict(
+                                    color=closure_rates,
+                                    colorscale='RdYlGn',
+                                    showscale=True,
+                                    colorbar=dict(title="<b>Rate %</b>", titleside='right'),
+                                    line=dict(color='black', width=1.5)
+                                ),
+                                text=[f"{rate:.1f}%" for rate in closure_rates],
+                                textposition='outside',
+                                textfont=dict(size=13, family='Arial Black'),
+                                hovertemplate='<b>%{x}</b><br>Closure Rate: %{y:.1f}%<extra></extra>'
+                            ))
+                            
+                            fig_closure.update_layout(
+                                title=dict(
+                                    text="<b>Closure Rate by Complaint Type</b><br><sub>Color-coded Bar Chart</sub>", 
+                                    font=dict(size=21), 
+                                    x=0.5, 
+                                    xanchor='center'
+                                ),
+                                xaxis_title="<b>Complaint Type</b>",
+                                yaxis_title="<b>Closure Rate (%)</b>",
+                                yaxis=dict(range=[0, 108]),
+                                height=550,
+                                hovermode='x',
+                                xaxis=dict(tickangle=-45, tickfont=dict(size=11))
+                            )
+                            st.plotly_chart(fig_closure, use_container_width=True)
+                        
+                        with viz_tab2:
+                            st.subheader("Department Performance Metrics")
+                            
+                            # Create department comparison
+                            dept_open_closed = {}
+                            for col in df.columns:
+                                if col != 'Grand Total' and '_' in col:
+                                    dept, status = col.rsplit('_', 1)
+                                    if dept not in dept_open_closed:
+                                        dept_open_closed[dept] = {'Open': 0, 'Closed': 0}
+                                    if 'Open' in status:
+                                        dept_open_closed[dept]['Open'] += df_viz[col].sum()
+                                    elif 'Closed' in status:
+                                        dept_open_closed[dept]['Closed'] += df_viz[col].sum()
+                            
+                            if dept_open_closed:
+                                depts = list(dept_open_closed.keys())
+                                open_vals = [dept_open_closed[d]['Open'] for d in depts]
+                                closed_vals = [dept_open_closed[d]['Closed'] for d in depts]
+                                
+                                # 4. GROUPED BAR CHART - Department Performance
+                                st.subheader("Department Comparison")
+                                
+                                fig_dept_grouped = go.Figure()
+                                fig_dept_grouped.add_trace(go.Bar(
+                                    name='Open',
+                                    x=depts,
+                                    y=open_vals,
+                                    marker=dict(
+                                        color='#EF553B',
+                                        line=dict(color='darkred', width=2)
+                                    ),
+                                    text=open_vals,
+                                    textposition='outside',
+                                    textfont=dict(size=14, family='Arial Black'),
+                                    hovertemplate='<b>%{x}</b><br>Open: %{y:,}<extra></extra>'
+                                ))
+                                fig_dept_grouped.add_trace(go.Bar(
+                                    name='Closed',
+                                    x=depts,
+                                    y=closed_vals,
+                                    marker=dict(
+                                        color='#00CC96',
+                                        line=dict(color='darkgreen', width=2)
+                                    ),
+                                    text=closed_vals,
+                                    textposition='outside',
+                                    textfont=dict(size=14, family='Arial Black'),
+                                    hovertemplate='<b>%{x}</b><br>Closed: %{y:,}<extra></extra>'
+                                ))
+                                
+                                fig_dept_grouped.update_layout(
+                                    title=dict(
+                                        text="<b>Department Performance: Open vs Closed</b><br><sub>Grouped Bar Chart</sub>", 
+                                        font=dict(size=21), 
+                                        x=0.5, 
+                                        xanchor='center'
+                                    ),
+                                    xaxis_title="<b>Department</b>",
+                                    yaxis_title="<b>Number of Complaints</b>",
+                                    barmode='group',
+                                    height=580,
+                                    hovermode='x unified',
+                                    legend=dict(
+                                        orientation="h", 
+                                        yanchor="bottom", 
+                                        y=1.02, 
+                                        xanchor="right", 
+                                        x=1,
+                                        font=dict(size=14)
+                                    )
+                                )
+                                st.plotly_chart(fig_dept_grouped, use_container_width=True)
+                                
+                                # 5. HEATMAP - Department vs Complaint Type
+                                st.subheader("Complaint Distribution Matrix")
+                                
+                                dept_complaint_matrix = []
+                                for ct in complaint_types:
+                                    row_data = []
+                                    for dept in depts:
+                                        dept_cols = [col for col in df.columns if col.startswith(dept + '_')]
+                                        total = df_viz.loc[ct, dept_cols].sum() if dept_cols else 0
+                                        row_data.append(total)
+                                    dept_complaint_matrix.append(row_data)
+                                
+                                fig_heatmap = go.Figure(data=go.Heatmap(
+                                    z=dept_complaint_matrix,
+                                    x=depts,
+                                    y=complaint_types,
+                                    colorscale='YlOrRd',
+                                    text=dept_complaint_matrix,
+                                    texttemplate='<b>%{text}</b>',
+                                    textfont=dict(size=13, family='Arial Black'),
+                                    colorbar=dict(
+                                        title="<b>Complaint<br>Count</b>", 
+                                        titleside='right',
+                                        titlefont=dict(size=13)
+                                    ),
+                                    hovertemplate='<b>Type:</b> %{y}<br><b>Dept:</b> %{x}<br><b>Count:</b> %{z:,}<extra></extra>'
+                                ))
+                                
+                                fig_heatmap.update_layout(
+                                    title=dict(
+                                        text="<b>Complaint Type vs Department Intensity</b><br><sub>Heatmap Visualization</sub>", 
+                                        font=dict(size=21), 
+                                        x=0.5, 
+                                        xanchor='center'
+                                    ),
+                                    xaxis_title="<b>Department</b>",
+                                    yaxis_title="<b>Complaint Type</b>",
+                                    height=650,
+                                    xaxis=dict(side='bottom', tickfont=dict(size=12)),
+                                    yaxis=dict(tickmode='linear', tickfont=dict(size=11))
+                                )
+                                st.plotly_chart(fig_heatmap, use_container_width=True)
+                                
+                                # Department Efficiency Metrics
+                                st.subheader("Department Efficiency Score")
+                                
+                                dept_efficiency = []
+                                for dept in depts:
+                                    total = open_vals[depts.index(dept)] + closed_vals[depts.index(dept)]
+                                    closed = closed_vals[depts.index(dept)]
+                                    efficiency = (closed / total * 100) if total > 0 else 0
+                                    dept_efficiency.append(efficiency)
+                                
+                                fig_efficiency = go.Figure()
+                                fig_efficiency.add_trace(go.Bar(
+                                    x=depts,
+                                    y=dept_efficiency,
+                                    marker=dict(
+                                        color=dept_efficiency,
+                                        colorscale='RdYlGn',
+                                        showscale=True,
+                                        colorbar=dict(title="<b>Efficiency<br>%</b>", titleside='right'),
+                                        line=dict(color='black', width=2)
+                                    ),
+                                    text=[f"{eff:.1f}%" for eff in dept_efficiency],
+                                    textposition='outside',
+                                    textfont=dict(size=15, family='Arial Black'),
+                                    hovertemplate='<b>%{x}</b><br>Efficiency: %{y:.1f}%<extra></extra>'
+                                ))
+                                
+                                # Add target line at 80%
+                                fig_efficiency.add_hline(
+                                    y=80, 
+                                    line_dash="dash", 
+                                    line_color="blue", 
+                                    annotation_text="Target: 80%",
+                                    annotation_position="right"
+                                )
+                                
+                                fig_efficiency.update_layout(
+                                    title=dict(
+                                        text="<b>Department Closure Efficiency</b><br><sub>Performance Bar Chart</sub>", 
+                                        font=dict(size=21), 
+                                        x=0.5, 
+                                        xanchor='center'
+                                    ),
+                                    xaxis_title="<b>Department</b>",
+                                    yaxis_title="<b>Closure Rate (%)</b>",
+                                    yaxis=dict(range=[0, 108]),
+                                    height=550,
+                                    hovermode='x'
+                                )
+                                st.plotly_chart(fig_efficiency, use_container_width=True)
+                        
+                        with viz_tab3:
+                            st.subheader("Complaint Type Deep Analysis")
+                            
+                            # 6. TREEMAP - Hierarchical View
+                            st.subheader("Hierarchical Distribution View")
+                            
+                            treemap_data = []
+                            for ct in complaint_types:
+                                for col in df.columns:
+                                    if col != 'Grand Total' and '_' in col:
+                                        parts = col.rsplit('_', 1)
+                                        if len(parts) == 2:
+                                            dept, status = parts
+                                            value = df_viz.loc[ct, col]
+                                            if value > 0:
+                                                treemap_data.append({
+                                                    'Complaint Type': ct,
+                                                    'Department': dept,
+                                                    'Status': status,
+                                                    'Count': value
+                                                })
+                            
+                            if treemap_data:
+                                df_treemap = pd.DataFrame(treemap_data)
+                                
+                                fig_treemap = px.treemap(
+                                    df_treemap,
+                                    path=['Complaint Type', 'Department', 'Status'],
+                                    values='Count',
+                                    color='Count',
+                                    color_continuous_scale='Rainbow',
+                                    title="<b>Interactive Sunburst Chart</b><br><sub>Click segments to drill down</sub>"
+                                )
+                                fig_sunburst.update_layout(
+                                    height=680,
+                                    title=dict(font=dict(size=21), x=0.5, xanchor='center')
+                                )
+                                fig_sunburst.update_traces(
+                                    textinfo="label+value+percent parent",
+                                    textfont=dict(size=12, family='Arial')
+                                )
+                                st.plotly_chart(fig_sunburst, use_container_width=True)
+                            
+                            # Bubble Chart - Department Performance
+                            st.subheader("Department Performance Bubble Analysis")
+                            
+                            if dept_open_closed:
+                                bubble_data = []
+                                for dept in depts:
+                                    total = dept_open_closed[dept]['Open'] + dept_open_closed[dept]['Closed']
+                                    closed = dept_open_closed[dept]['Closed']
+                                    efficiency = (closed / total * 100) if total > 0 else 0
+                                    bubble_data.append({
+                                        'Department': dept,
+                                        'Total': total,
+                                        'Closed': closed,
+                                        'Open': dept_open_closed[dept]['Open'],
+                                        'Efficiency': efficiency
+                                    })
+                                
+                                df_bubble = pd.DataFrame(bubble_data)
+                                
+                                fig_bubble = px.scatter(
+                                    df_bubble,
+                                    x='Total',
+                                    y='Efficiency',
+                                    size='Total',
+                                    color='Efficiency',
+                                    hover_name='Department',
+                                    text='Department',
+                                    color_continuous_scale='RdYlGn',
+                                    size_max=70,
+                                    title="<b>Department Performance Bubble Chart</b><br><sub>Bubble size = Total Complaints | Color = Efficiency</sub>"
+                                )
+                                fig_bubble.update_traces(
+                                    textposition='top center',
+                                    textfont=dict(size=13, family='Arial Black'),
+                                    marker=dict(line=dict(width=2, color='DarkSlateGrey'))
+                                )
+                                fig_bubble.update_layout(
+                                    height=600,
+                                    title=dict(font=dict(size=21), x=0.5, xanchor='center'),
+                                    xaxis_title="<b>Total Complaints</b>",
+                                    yaxis_title="<b>Closure Rate (%)</b>",
+                                    xaxis=dict(tickfont=dict(size=12)),
+                                    yaxis=dict(
+                                        range=[0, 108],
+                                        tickfont=dict(size=12)
+                                    )
+                                )
+                                st.plotly_chart(fig_bubble, use_container_width=True)
+                            
+                            # Waterfall Chart - Status Breakdown
+                            st.subheader("Complaint Status Waterfall")
+                            
+                            waterfall_values = []
+                            waterfall_labels = []
+                            waterfall_measure = []
+                            
+                            # Start with total
+                            waterfall_labels.append("Total Complaints")
+                            waterfall_values.append(total_complaints)
+                            waterfall_measure.append("absolute")
+                            
+                            # Add closed
+                            waterfall_labels.append("Closed")
+                            waterfall_values.append(-total_closed)
+                            waterfall_measure.append("relative")
+                            
+                            # Add open
+                            waterfall_labels.append("Open Remaining")
+                            waterfall_values.append(total_open)
+                            waterfall_measure.append("total")
+                            
+                            fig_waterfall = go.Figure(go.Waterfall(
+                                name="Status Flow",
+                                orientation="v",
+                                measure=waterfall_measure,
+                                x=waterfall_labels,
+                                textposition="outside",
+                                text=[f"{abs(v):,.0f}" for v in waterfall_values],
+                                y=waterfall_values,
+                                connector={"line": {"color": "rgb(63, 63, 63)"}},
+                                decreasing={"marker": {"color": "#00CC96"}},
+                                increasing={"marker": {"color": "#EF553B"}},
+                                totals={"marker": {"color": "#636EFA"}}
+                            ))
+                            
+                            fig_waterfall.update_layout(
+                                title=dict(
+                                    text="<b>Complaint Status Waterfall</b><br><sub>Flow from Total to Open</sub>",
+                                    font=dict(size=21),
+                                    x=0.5,
+                                    xanchor='center'
+                                ),
+                                height=550,
+                                showlegend=False,
+                                xaxis_title="<b>Status Category</b>",
+                                yaxis_title="<b>Number of Complaints</b>"
+                            )
+                            st.plotly_chart(fig_waterfall, use_container_width=True)
+                        
+                        st.divider()
+                        
+                        # ========================================
+                        # DATA TABLE SECTION
+                        # ========================================
+                        st.header("📋 Detailed Data Table")
+                        
+                        # Add download and export options
+                        col_export1, col_export2, col_export3 = st.columns([1, 1, 1])
+                        
+                        with col_export2:
+                            csv = df.to_csv(index=True).encode('utf-8')
+                            st.download_button(
+                                label="📥 Download CSV Report",
+                                data=csv,
+                                file_name=f"finance_year_report_{date_range.replace(' ', '_').replace('/', '-')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                                type="primary"
+                            )
+                        
+                        # Display dataframe with enhanced styling
+                        st.dataframe(
+                            df,
+                            use_container_width=True,
+                            height=450
+                        )
+                        
+                        logger.info(f"Tab 2: Finance year report generated | range={date_range}")
+                        
+                        # Store last generated time
+                        st.session_state.last_report_time_tab2 = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        # Reset flag after successful generation
+                        st.session_state.generate_report_tab2 = False
+                        
+                    else:
+                        if status_code:
+                            st.error(f"❌ Failed to fetch data. Status code: {status_code}")
+                            logger.error(f"Tab 2: API request failed | status_code={status_code}")
+                        else:
+                            st.error(f"❌ Error: {error}")
+                            logger.error(f"Tab 2: Error - {error}")
+                        
+                        # Reset flag after error
+                        st.session_state.generate_report_tab2 = False
+
+                            # Show last loaded timestamp
+                        if "last_report_time_tab2" in st.session_state:
+                            st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
+
+
+                            # Create treemap
+                            fig_treemap = px.treemap(
+                                df_treemap,
+                                path=['Complaint Type', 'Department', 'Status'],
+                                values='Count',
+                                color='Count',
+                                color_continuous_scale='Turbo',
+                                title="<b>Complaint Hierarchy Treemap</b><br><sub>Complaint Type → Department → Status</sub>"
+                            )
+                            fig_treemap.update_layout(
+                                height=680,
+                                title=dict(font=dict(size=21), x=0.5, xanchor='center')
+                            )
+                            fig_treemap.update_traces(
+                                textinfo="label+value+percent parent",
+                                textfont=dict(size=13, family='Arial'),
+                                marker=dict(line=dict(width=2, color='white'))
+                            )
+                            st.plotly_chart(fig_treemap, use_container_width=True)
+
+                            # Top Complaint Types
+                            st.subheader("Top Complaint Rankings")
+                            
+                            complaint_totals = df_viz.sum(axis=1).sort_values(ascending=False)
+                            top_n = min(12, len(complaint_totals))
+                            
+                            fig_top = go.Figure()
+                            fig_top.add_trace(go.Bar(
+                                x=complaint_totals.head(top_n).values,
+                                y=complaint_totals.head(top_n).index,
+                                orientation='h',
+                                marker=dict(
+                                    color=complaint_totals.head(top_n).values,
+                                    colorscale='Viridis',
+                                    showscale=True,
+                                    colorbar=dict(title="<b>Total<br>Count</b>", titleside='right'),
+                                    line=dict(color='black', width=1.5)
+                                ),
+                                text=complaint_totals.head(top_n).values,
+                                textposition='outside',
+                                textfont=dict(size=14, family='Arial Black'),
+                                hovertemplate='<b>%{y}</b><br>Total: %{x:,}<extra></extra>'
+                            ))
+                            
+                            fig_top.update_layout(
+                                title=dict(
+                                    text=f"<b>Top {top_n} Complaint Types</b><br><sub>Ranked Horizontal Bar Chart</sub>", 
+                                    font=dict(size=21), 
+                                    x=0.5, 
+                                    xanchor='center'
+                                ),
+                                xaxis_title="<b>Total Complaints</b>",
+                                yaxis_title="<b>Complaint Type</b>",
+                                height=600,
+                                yaxis=dict(autorange="reversed", tickfont=dict(size=11))
+                            )
+                            st.plotly_chart(fig_top, use_container_width=True)
+                        
+                        with viz_tab4:
+                            st.subheader("Advanced Analytics & Insights")
+                            
+                            # 7. MOSAIC PLOT - Composition Analysis
+                            st.subheader("Complaint Composition Analysis")
+                            
+                            mosaic_data = []
+                            for ct in complaint_types:
+                                ct_total = df_viz.loc[ct].sum()
+                                if ct_total > 0:
+                                    for col in df.columns:
+                                        if col != 'Grand Total' and '_' in col:
+                                            parts = col.rsplit('_', 1)
+                                            if len(parts) == 2:
+                                                dept, status = parts
+                                                value = df_viz.loc[ct, col]
+                                                pct = (value / ct_total) * 100
+                                                mosaic_data.append({
+                                                    'Complaint Type': ct,
+                                                    'Department_Status': f"{dept} - {status}",
+                                                    'Count': value,
+                                                    'Percentage': pct
+                                                })
+                            
+                            if mosaic_data:
+                                df_mosaic = pd.DataFrame(mosaic_data)
+                                
+                                fig_mosaic = go.Figure()
+                                
+                                dept_status_unique = df_mosaic['Department_Status'].unique()
+                                colors = px.colors.qualitative.Bold[:len(dept_status_unique)]
+                                
+                                for idx, ds in enumerate(dept_status_unique):
+                                    subset = df_mosaic[df_mosaic['Department_Status'] == ds]
+                                    fig_mosaic.add_trace(go.Bar(
+                                        name=ds,
+                                        x=subset['Complaint Type'],
+                                        y=subset['Percentage'],
+                                        text=subset['Count'],
+                                        textposition='inside',
+                                        textfont=dict(size=11, color='white', family='Arial Black'),
+                                        marker=dict(
+                                            color=colors[idx % len(colors)],
+                                            line=dict(color='white', width=1.5)
+                                        ),
+                                        hovertemplate='<b>%{x}</b><br>' + ds + '<br>Count: %{text:,}<br>Percentage: %{y:.1f}%<extra></extra>'
+                                    ))
+                                
+                                fig_mosaic.update_layout(
+                                    title=dict(
+                                        text="<b>Complaint Type Composition</b><br><sub>Mosaic Plot (100% Stacked)</sub>", 
+                                        font=dict(size=21), 
+                                        x=0.5, 
+                                        xanchor='center'
+                                    ),
+                                    barmode='stack',
+                                    xaxis_title="<b>Complaint Type</b>",
+                                    yaxis_title="<b>Percentage (%)</b>",
+                                    height=650,
+                                    hovermode='x unified',
+                                    legend=dict(
+                                        orientation="v",
+                                        yanchor="middle",
+                                        y=0.5,
+                                        xanchor="left",
+                                        x=1.02,
+                                        title="<b>Department - Status</b>",
+                                        font=dict(size=11)
+                                    ),
+                                    xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+                                    yaxis=dict(range=[0, 100])
+                                )
+                                st.plotly_chart(fig_mosaic, use_container_width=True)
+                            
+                            # Sunburst Chart
+                            st.subheader("Interactive Sunburst Hierarchy")
+                            
+                        if sunburst_data:
+                            df_sunburst = pd.DataFrame(sunburst_data)
+                            
+                            fig_sunburst = px.sunburst(
+                                df_sunburst,
+                                path=['Complaint Type', 'Department', 'Status'],
+                                values='Count',
+                                color='Count',
+                                color_continuous_scale='Viridis',
+                                hover_data={'Count': ':,'}
+                            )
+                            
+                            fig_sunburst.update_traces(
+                                textinfo='label+percent parent',
+                                hovertemplate='<b>%{label}</b><br>Count: %{value:,}<br>Percentage: %{percentParent:.1f}%<extra></extra>'
+                            )
+                            
+                            fig_sunburst.update_layout(
+                                title=dict(
+                                    text="<b>Hierarchical Complaint Distribution</b><br><sub>Complaint Type → Department → Status</sub>",
+                                    font=dict(size=21),
+                                    x=0.5,
+                                    xanchor='center'
+                                ),
+                                height=700,
+                                margin=dict(t=100, l=0, r=0, b=0)
+                            )
+                            
+                            st.plotly_chart(fig_sunburst, use_container_width=True)
+       
+                        # Show last loaded timestamp
+                    if "last_report_time_tab2" in st.session_state:
+                        st.caption(f"Last loaded: {st.session_state.last_report_time_tab2}")
+                    else:
+                        st.caption("Last loaded: Not generated yet")
 
 
 

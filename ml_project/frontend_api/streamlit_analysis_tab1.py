@@ -44,7 +44,11 @@ FLASK_URL = "http://localhost:5000"
 
 
 
-
+# Pie Chart , donut chart, mosaic plot, marimekko chart,sunburst chart,sankey diagram,parallel sets,network diagram,polar area chart,Heatmap 
+# multi-line chart, Area Chart by Category, stacked area chart, scatter plot with hue,dot plot by category, Choropleth Map, Dot Density Map
+# Funnel Chart, Mixed Subplots
+# 3d pie chart,3D 3D Bar Chart, 3D Column Chart,3d treemap,3d line plot,3D Scatter Plot,3D Histogram,3d bubble chart,3D Grouped Bar Chart,3d choropleth map
+#JSON Schema Tree,Tree View
 
 logger = get_logger(__name__)
 
