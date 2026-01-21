@@ -38,3 +38,14 @@ except DatasetNotFoundError as e:
 
 st.header("X-Dashboard Shift wise Power Outage Duration Hour Analysis")
 
+
+try:
+    dataset_path = get_dataset_path("data/raw")
+    print(f"Dataset found at: {dataset_path}")
+except DatasetNotFoundError as e:
+    print(f"Error: {e}")
+
+    API_URL = "http://localhost:8000"
+    FASTAPI_URL = "http://localhost:8000"
+    FLASK_URL = "http://localhost:5000"
+

@@ -241,6 +241,13 @@ try:
 
 
 
+
+
+
+
+
+
+
 except Exception as e:
     error_msg = str(CustomException(e, sys))
     logger.error(f"Unhandled error in Streamlit dashboard Tab1 | error={error_msg}")

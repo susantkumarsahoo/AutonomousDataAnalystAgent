@@ -123,8 +123,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     help="Choose the month"
                 )
 
-            with col2:
-                # Year selector
+            with col2:               
                 current_year = datetime.today().year
                 selected_year = st.selectbox(
                     "Select Year",
@@ -143,7 +142,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 if st.button(
                     "📊 Generate Report",
                     type="primary",
-                    use_container_width=True,
+                    width="stretch",
                     key="generate_report_button_tab2"
                 ):
                     # Update session state when button is clicked
@@ -483,7 +482,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 textinfo="label+value+percent parent",
                                 textfont=dict(size=12, family='Arial')
                             )
-                            st.plotly_chart(fig_treemap, use_container_width=True)
+                            st.plotly_chart(fig_treemap, width="stretch")
                         
                         # Top Complaint Types
                         st.subheader("Top Complaint Types")
@@ -687,7 +686,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             data=csv,
                             file_name=f"monthly_report_{month_str}.csv",
                             mime="text/csv",
-                            use_container_width=True,
+                            width="stretch",
                             type="primary"
                         )
                     
@@ -816,7 +815,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                 if st.button(
                     "📊 Generate Report",
                     type="primary",
-                    use_container_width=True,
+                    width="stretch",
                     key="generate_report_button_t"
                 ):
                     # Validate quarter range
@@ -1194,7 +1193,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                             data=csv,
                             file_name=f"quarterly_report_{period_range.replace(' ', '_')}.csv",
                             mime="text/csv",
-                            use_container_width=True
+                            width="stretch"
                         )
                     
                     # Display dataframe
@@ -1306,7 +1305,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                     if st.button(
                         "📊 Generate Report",
                         type="primary",
-                        use_container_width=True,
+                        width="stretch",
                         key="generate_report_button"
                     ):
                         # Validate date range
@@ -2073,7 +2072,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                 data=csv,
                                 file_name=f"finance_year_report_{date_range.replace(' ', '_').replace('/', '-')}.csv",
                                 mime="text/csv",
-                                use_container_width=True,
+                                width="stretch",
                                 type="primary"
                             )
                         
@@ -2409,7 +2408,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("#### 📋 Complaint Type Distribution")
                                             st.dataframe(
                                                 complaint_report.style.background_gradient(subset=['Count'], cmap='Blues'),
-                                                use_container_width=True, 
+                                                width="stretch", 
                                                 height=400
                                             )
                                             
@@ -2429,7 +2428,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("#### 🔄 Status Overview")
                                             st.dataframe(
                                                 status_report.style.background_gradient(subset=['Count'], cmap='RdYlGn'),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=400
                                             )
                                             
@@ -2475,7 +2474,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("#### 📝 QRC Analysis")
                                             st.dataframe(
                                                 qrc_report.style.background_gradient(subset=['Count'], cmap='Purples'),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=350
                                             )
                                             
@@ -2551,7 +2550,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("#### 🏢 Section Analysis")
                                             st.dataframe(
                                                 section_report.style.background_gradient(subset=['Count'], cmap='Oranges'),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=400
                                             )
                                         
@@ -2616,7 +2615,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                             st.markdown("#### ⏱️ Resolution Time Analysis")
                                             st.dataframe(
                                                 minute_report.head(30).style.background_gradient(subset=['Count'], cmap='RdYlGn_r'),
-                                                use_container_width=True,
+                                                width="stretch",
                                                 height=450
                                             )
                                             
@@ -2886,7 +2885,7 @@ def streamlit_analysis_tab2(tab2, dataset_path, logger):
                                                 )
                                                 fig.update_traces(texttemplate='%{text}', textposition='outside')
                                                 fig.update_layout(height=500)
-                                                st.plotly_chart(fig, use_container_width=True)
+                                                st.plotly_chart(fig, width="stretch")
                                             
                                             with viz_col2:
                                                 fig = px.pie(
