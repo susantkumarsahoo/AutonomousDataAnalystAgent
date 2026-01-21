@@ -62,17 +62,18 @@ def analysis_dashboard(dashboard_type: str,dataset_path: Optional[str] = None,
         # ==================================================
         if "Analysis Dashboard" in dashboard_type:
            
-
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
                 [
                     "📈 Complaint Overview",
                     "📋 Data Table Reports",
-                    "💰 Finance Year Report",
+                    "💼 Financial Year Report",
+                    "📊 PPT / Executive Reports",
+                    "🗂️ Raw Data Reports",
                     "🔍 Dataset Information",
-                    "📊 Visualizations",
-                    "📝 Summary",
+                    "📉 Visual Analytics",
                 ]
             )
+
 
 
             # ----------------------------------------------
