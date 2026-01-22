@@ -170,7 +170,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                 
                 with metric_col4:
                     if len(filtered_df) > 0:
-                        open_count = filtered_df['CLOSED/OPEN'].value_counts().get('OPEN', 0)
+                        open_count = filtered_df['CLOSED/OPEN'].value_counts().get('Open', 0)
                         st.metric("Open Cases", f"{open_count:,}")
                     else:
                         st.metric("Open Cases", "0")
@@ -184,7 +184,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                     st.markdown("---")
                     view_option = st.radio(
                         "Select View:",
-                        ["📊 Visualizations", "📋 Data Tables", "📊📋 Both"],
+                        ["📊📋 Both", "📋 Data Tables","📊 Visualizations"],
                         horizontal=True,
                         help="Choose how you want to view the analysis"
                     )
@@ -201,7 +201,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Complaint Type Distribution")
                         complaint_data = generate_complaint_report_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Interactive Pie Chart
                             fig_complaint = px.pie(
                                 complaint_data,
@@ -221,7 +221,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Date-wise Distribution")
                         date_data = generate_date_report_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Interactive Line Chart with Area
                             fig_date = px.area(
                                 date_data,
@@ -247,7 +247,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Shift Duty Analysis")
                         shift_data = generate_shift_duty_report_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Bar Chart
                             fig_shift = px.bar(
                                 shift_data,
@@ -268,7 +268,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Query/Request/Complaint Type")
                         qrc_data = generate_qrc_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Donut Chart
                             fig_qrc = px.pie(
                                 qrc_data,
@@ -294,7 +294,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Section-wise Distribution")
                         section_data = get_section_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Horizontal Bar Chart
                             fig_section = px.bar(
                                 section_data.head(15),
@@ -316,7 +316,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Sub-Division Distribution")
                         subdivision_data = get_subdivision_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Horizontal Bar Chart
                             fig_subdivision = px.bar(
                                 subdivision_data.head(15),
@@ -345,7 +345,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Division-wise Distribution")
                         division_data = get_division_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Treemap
                             fig_division = px.treemap(
                                 division_data,
@@ -364,7 +364,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Circle-wise Distribution")
                         circle_data = get_circle_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Sunburst Chart
                             fig_circle = px.sunburst(
                                 circle_data,
@@ -390,7 +390,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Consumer Number Frequency")
                         consumer_data = get_consumer_number_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Top 20 Bar Chart
                             fig_consumer = px.bar(
                                 consumer_data.head(20),
@@ -410,7 +410,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Mobile Number Frequency")
                         mobile_data = get_mobile_number_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Top 20 Bar Chart
                             fig_mobile = px.bar(
                                 mobile_data.head(20),
@@ -437,7 +437,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Department Distribution")
                         dept_data = get_dept_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Pie Chart
                             fig_dept = px.pie(
                                 dept_data,
@@ -455,7 +455,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Status Distribution (Open/Closed)")
                         status_data = get_status_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Gauge-like Bar Chart
                             fig_status = px.bar(
                                 status_data,
@@ -483,7 +483,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Complaint Number Frequency")
                         complaint_num_data = get_complaint_number_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Scatter Plot
                             complaint_num_data_plot = complaint_num_data.head(30).reset_index()
                             fig_complaint_num = px.scatter(
@@ -506,7 +506,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Complainant Name Frequency")
                         complainant_data = get_complainant_name_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Horizontal Bar for Top 15
                             fig_complainant = px.bar(
                                 complainant_data.head(15),
@@ -534,7 +534,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### PSCC/FG/TO Distribution")
                         pscc_data = get_pscc_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Funnel Chart
                             fig_pscc = px.funnel(
                                 pscc_data,
@@ -553,7 +553,7 @@ def streamlit_analysis_tab3(tab3, dataset_path, logger):
                         st.markdown("#### Minute Distribution")
                         minute_data = get_minute_data_fy(filtered_df)
                         
-                        if view_option in ["📊 Visualizations", "📊📋 Both"]:
+                        if view_option in ["📊📋 Both","📊 Visualizations"]:
                             # Histogram
                             fig_minute = px.histogram(
                                 minute_data.head(20),
