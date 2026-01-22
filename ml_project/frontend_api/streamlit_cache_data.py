@@ -240,6 +240,140 @@ try:
 
 
 
+    # Load Excel data (no change needed)
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def load_excel_data(file_path):
+        """Load and cache Excel data"""
+        df = pd.read_excel(file_path)
+        df['DATE'] = pd.to_datetime(df['DATE'])
+        return df
+
+    # Filter financial year data (NEW - replaces get_month_data)
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_financial_year_data(df, selected_fy):
+        """Filter data for selected financial year"""
+        # Extract start and end year from FY string (e.g., "2023-24")
+        start_year = int(selected_fy.split('-')[0])
+        end_year = int(selected_fy.split('-')[1])
+        
+        # Financial year runs from April to March
+        fy_start = pd.Timestamp(f'{start_year}-04-01')
+        fy_end = pd.Timestamp(f'{end_year + 2000}-03-31')
+        
+        return df[(df['DATE'] >= fy_start) & (df['DATE'] <= fy_end)]
+
+    # Enhanced report functions for Financial Year
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def generate_complaint_report_fy(fy_df):
+        result = fy_df['COMPLAINT TYPE'].value_counts().reset_index()
+        result.columns = ['Complaint Type', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def generate_date_report_fy(fy_df):
+        result = fy_df['DATE'].value_counts().sort_index().reset_index()
+        result.columns = ['Date', 'Count']
+        result['Day of Week'] = pd.to_datetime(result['Date']).dt.day_name()
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def generate_shift_duty_report_fy(fy_df):
+        result = fy_df['SHIFT DUTY'].value_counts().reset_index()
+        result.columns = ['Shift Duty', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def generate_qrc_data_fy(fy_df):
+        result = fy_df['QUERY/REQUEST/COMPLAINT'].value_counts().reset_index()
+        result.columns = ['QRC Type', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_complaint_number_data_fy(fy_df):
+        result = fy_df['COMPLAINT NUMBER'].value_counts().reset_index()
+        result.columns = ['Complaint Number', 'Count']
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_section_data_fy(fy_df):
+        result = fy_df['SECTION'].value_counts().reset_index()
+        result.columns = ['Section', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_subdivision_data_fy(fy_df):
+        result = fy_df['SUB-DIVISION'].value_counts().reset_index()
+        result.columns = ['Sub-Division', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_division_data_fy(fy_df):
+        result = fy_df['DIVISION'].value_counts().reset_index()
+        result.columns = ['Division', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_circle_data_fy(fy_df):
+        result = fy_df['CIRCLE'].value_counts().reset_index()
+        result.columns = ['Circle', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_consumer_number_data_fy(fy_df):
+        result = fy_df['CONSUMER NUMBER'].value_counts().reset_index()
+        result.columns = ['Consumer Number', 'Count']
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_mobile_number_data_fy(fy_df):
+        result = fy_df['MOBILE NUMB'].value_counts().reset_index()
+        result.columns = ['Mobile Number', 'Count']
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_dept_data_fy(fy_df):
+        result = fy_df['DEPT'].value_counts().reset_index()
+        result.columns = ['Department', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_status_data_fy(fy_df):
+        result = fy_df['CLOSED/OPEN'].value_counts().reset_index()
+        result.columns = ['Status', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_complainant_name_data_fy(fy_df):
+        result = fy_df['COMPLAINANT NAME'].value_counts().reset_index()
+        result.columns = ['Complainant Name', 'Count']
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_pscc_data_fy(fy_df):
+        result = fy_df['PSCC/FG/TO'].value_counts().reset_index()
+        result.columns = ['PSCC Type', 'Count']
+        result['Percentage'] = (result['Count'] / result['Count'].sum() * 100).round(2)
+        return result
+
+    @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
+    def get_minute_data_fy(fy_df):
+        result = fy_df['MINUTE'].value_counts().reset_index()
+        result.columns = ['Minute', 'Count']
+        return result
+
+
+
+
+
 
 except Exception as e:
     error_msg = str(CustomException(e, sys))
