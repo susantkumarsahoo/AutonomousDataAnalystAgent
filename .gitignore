@@ -205,6 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-x_data.xlsx
-
+# Ignore all files inside data/raw_path
+data/raw_path/*
 
