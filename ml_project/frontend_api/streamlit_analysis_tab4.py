@@ -20,6 +20,12 @@ from ml_project.frontend_api.streamlit_analysis_helper import*
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
+from ml_project.frontend_api.streamlit_analysis_tab4_helper import (
+    time_series_complaints_status_stacked,
+    get_qrc_value_counts,
+    get_complaint_type_value_counts_type,
+    agging_all_open_pivot_table,
+)
 from ml_project.frontend_api.streamlit_cache_data import(
 load_excel_data,
 
@@ -53,10 +59,235 @@ if sys.platform == "win32":
 logger = get_logger(__name__)
 
 # ================================================================
-# STREAMLIT APP FOR TAB 4
+# CONFIGURATION
 # ================================================================
 
-def streamlit_analysis_tab4(tab4, dataset_path, logger):
+# Custom CSS for better design
+def load_custom_css():
+    st.markdown("""
+        <style>
+        /* Main container styling */
+        .main {
+            padding: 2rem;
+        }
+        
+        /* Header styling */
+        .custom-header {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Card styling */
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        /* Dataframe styling */
+        .dataframe-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Button styling */
+        .stButton>button {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 5px;
+            padding: 0.5rem 2rem;
+            border: none;
+            font-weight: bold;
+        }
+        
+        .stButton>button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        
+        /* Sidebar styling */
+        .css-1d391kg {
+            background-color: #f8f9fa;
+        }
+        
+        /* Expander styling */
+        .streamlit-expanderHeader {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        /* Info box styling */
+        .info-box {
+            background-color: #e7f3ff;
+            padding: 1rem;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+            margin: 1rem 0;
+        }
+        
+        /* Success box styling */
+        .success-box {
+            background-color: #e8f5e9;
+            padding: 1rem;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            margin: 1rem 0;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+# ================================================================
+# HELPER FUNCTIONS
+# ================================================================
+
+@st.cache_data
+def load_excel_data(dataset_path: str) -> pd.DataFrame:
+    """Load Excel data with caching for performance"""
+    try:
+        df = pd.read_excel(dataset_path)
+        return df
+    except Exception as e:
+        st.error(f"Error loading dataset: {str(e)}")
+        return pd.DataFrame()
+
+def style_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply styling to dataframe for better visualization"""
+    return df.style.background_gradient(cmap='RdYlGn_r', subset=pd.IndexSlice[:, df.select_dtypes(include=[np.number]).columns])
+
+def create_download_link(df: pd.DataFrame, filename: str = "filtered_data.csv"):
+    """Create a download button for the dataframe"""
+    csv = df.to_csv(index=False)
+    return csv
+
+# ================================================================
+# VISUALIZATION FUNCTIONS - FIXED TO ACCEPT DATAFRAMES
+# ================================================================
+
+def create_time_series_chart(df: pd.DataFrame, chart_type: str = "line"):
+    """Create time series visualization based on selected chart type"""
+    if df.empty:
+        st.warning("No data available for time series chart")
+        return
+    
+    # Prepare data - FIXED: pass DataFrame instead of path
+    pivot_df = time_series_complaints_status_stacked(df)
+    
+    if chart_type == "line":
+        fig = px.line(pivot_df, x='YEAR', y='Total', 
+                      title='Total Complaints Over Years',
+                      labels={'Total': 'Number of Complaints', 'YEAR': 'Year'})
+    elif chart_type == "bar":
+        fig = px.bar(pivot_df, x='YEAR', y='Total',
+                     title='Total Complaints by Year',
+                     labels={'Total': 'Number of Complaints', 'YEAR': 'Year'})
+    elif chart_type == "area":
+        fig = px.area(pivot_df, x='YEAR', y='Total',
+                      title='Complaint Trends (Area Chart)',
+                      labels={'Total': 'Number of Complaints', 'YEAR': 'Year'})
+    
+    fig.update_layout(
+        template='plotly_white',
+        hovermode='x unified',
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def create_complaint_type_chart(df: pd.DataFrame, chart_type: str = "bar"):
+    """Create complaint type visualization"""
+    count_df = get_complaint_type_value_counts_type(df)
+    
+    if chart_type == "bar":
+        fig = px.bar(count_df, x='COMPLAINT TYPE', y='count',
+                     title='Top 5 Complaint Types',
+                     labels={'count': 'Number of Complaints', 'COMPLAINT TYPE': 'Complaint Type'},
+                     color='count',
+                     color_continuous_scale='Viridis')
+    elif chart_type == "pie":
+        fig = px.pie(count_df, names='COMPLAINT TYPE', values='count',
+                     title='Complaint Type Distribution',
+                     hole=0.4)
+    elif chart_type == "horizontal_bar":
+        fig = px.bar(count_df, y='COMPLAINT TYPE', x='count',
+                     title='Top 5 Complaint Types',
+                     labels={'count': 'Number of Complaints', 'COMPLAINT TYPE': 'Complaint Type'},
+                     orientation='h',
+                     color='count',
+                     color_continuous_scale='Blues')
+    
+    fig.update_layout(
+        template='plotly_white',
+        showlegend=True,
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def create_qrc_chart(df: pd.DataFrame):
+    """Create Query/Request/Complaint distribution chart"""
+    count_df = get_qrc_value_counts(df)
+    
+    fig = px.pie(count_df, names='QUERY/REQUEST/COMPLAINT', values='count',
+                 title='Query/Request/Complaint Distribution',
+                 color_discrete_sequence=px.colors.qualitative.Set3)
+    
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(template='plotly_white', height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+def create_aging_heatmap(df: pd.DataFrame):
+    """Create heatmap for aging complaints - FIXED to accept DataFrame"""
+    pivot_df = agging_all_open_pivot_table(df)
+    
+    # Remove Grand_Total for heatmap
+    heatmap_data = pivot_df[pivot_df['COMPLAINT TYPE'] != 'Grand_Total'].copy()
+    heatmap_data = heatmap_data.set_index('COMPLAINT TYPE')
+    heatmap_data = heatmap_data.drop('Grand_Total', axis=1, errors='ignore')
+    
+    fig = px.imshow(heatmap_data,
+                    labels=dict(x="Age Bucket", y="Complaint Type", color="Count"),
+                    title="Complaint Aging Analysis (Heatmap)",
+                    color_continuous_scale='RdYlGn_r',
+                    aspect='auto')
+    
+    fig.update_layout(template='plotly_white', height=500)
+    st.plotly_chart(fig, use_container_width=True)
+
+def create_monthly_trend_chart(df: pd.DataFrame):
+    """Create monthly trend chart"""
+    df = df.copy()
+    df['DATE'] = pd.to_datetime(df['DATE'])
+    df['MONTH_YEAR'] = df['DATE'].dt.to_period('M').astype(str)
+    
+    monthly_counts = df.groupby('MONTH_YEAR').size().reset_index(name='count')
+    
+    fig = px.line(monthly_counts, x='MONTH_YEAR', y='count',
+                  title='Monthly Complaint Trends',
+                  labels={'count': 'Number of Complaints', 'MONTH_YEAR': 'Month-Year'},
+                  markers=True)
+    
+    fig.update_layout(
+        template='plotly_white',
+        xaxis_tickangle=-45,
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+# ================================================================
+# MAIN STREAMLIT APP FOR TAB 4
+# ================================================================
+
+def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
     """
     Renders all content for Tab 4 including analysis and reports.
     
@@ -71,18 +302,354 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger):
     """
     try:
         with tab4:
-            # ========================================
-            # Initialize Session State
-            # ========================================
-            st.header("📊 Text Row Data Analysis")
-            st.caption("Analyze text data in the dataset")
-
-
+            # Load custom CSS
+            load_custom_css()
             
-
+            # ========================================
+            # HEADER SECTION
+            # ========================================
+            st.markdown("""
+                <div class="custom-header">
+                    <h1>📊 Text Row Data Analysis Dashboard</h1>
+                    <p>Comprehensive analysis and visualization of complaint data</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # ========================================
+            # SIDEBAR CONTROLS
+            # ========================================
+            with st.sidebar:
+                st.markdown("### 🎛️ Control Panel")
+                st.markdown("---")
+                
+                # Data refresh button
+                if st.button("🔄 Refresh Data"):
+                    st.cache_data.clear()
+                    st.success("Cache cleared! Data will be refreshed.")
+                
+                st.markdown("---")
+                st.markdown("### 📊 Visualization Options")
+                
+                # Visualization type selector
+                viz_type = st.selectbox(
+                    "Select Primary Chart Type",
+                    ["Line Chart", "Bar Chart", "Area Chart"],
+                    help="Choose the type of chart for time series data"
+                )
+                
+                # Secondary chart type
+                complaint_viz_type = st.selectbox(
+                    "Complaint Type Visualization",
+                    ["Bar Chart", "Pie Chart", "Horizontal Bar"],
+                    help="Choose visualization for complaint types"
+                )
+                
+                st.markdown("---")
+                st.markdown("### 🔍 Data Filters")
+                
+                # Date range filter
+                use_date_filter = st.checkbox("Enable Date Filter", value=False)
+                
+                if use_date_filter:
+                    date_range = st.date_input(
+                        "Select Date Range",
+                        value=(datetime.now() - timedelta(days=365), datetime.now()),
+                        help="Filter data by date range"
+                    )
+                
+                # Show only open complaints
+                show_only_open = st.checkbox("Show Only Open Complaints", value=False)
+                
+                # Number of rows to display
+                st.markdown("---")
+                st.markdown("### 📋 Display Options")
+                num_rows = st.slider(
+                    "Number of rows to display",
+                    min_value=10,
+                    max_value=1000,
+                    value=100,
+                    step=10,
+                    help="Select how many rows to show in the dataframe"
+                )
+                
+                # Dataframe styling option
+                use_styling = st.checkbox("Apply Color Gradient", value=True,
+                                         help="Apply color gradient to numeric columns")
+                
+                st.markdown("---")
+                st.markdown("### ℹ️ About")
+                st.info("""
+                    This dashboard provides comprehensive analysis of complaint data including:
+                    - Time series trends
+                    - Complaint type distribution
+                    - Aging analysis
+                    - Interactive filtering
+                """)
+            
+            # ========================================
+            # LOAD DATA
+            # ========================================
+            with st.spinner("Loading data..."):
+                df = load_excel_data(dataset_path)
+            
+            if df.empty:
+                st.error("❌ No data available. Please check the dataset path.")
+                return
+            
+            # Apply filters
+            filtered_df = df.copy()
+            
+            if use_date_filter and 'date_range' in locals():
+                filtered_df['DATE'] = pd.to_datetime(filtered_df['DATE'])
+                filtered_df = filtered_df[
+                    (filtered_df['DATE'].dt.date >= date_range[0]) & 
+                    (filtered_df['DATE'].dt.date <= date_range[1])
+                ]
+            
+            if show_only_open:
+                filtered_df = filtered_df[filtered_df['CLOSED/OPEN'].str.lower().str.strip() == 'open']
+            
+            # ========================================
+            # KEY METRICS
+            # ========================================
+            st.markdown("### 📈 Key Metrics")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                total_complaints = len(filtered_df)
+                st.metric(
+                    label="Total Complaints",
+                    value=f"{total_complaints:,}",
+                    delta=f"{len(df) - total_complaints} filtered" if len(df) != total_complaints else None
+                )
+            
+            with col2:
+                if 'CLOSED/OPEN' in filtered_df.columns:
+                    open_complaints = len(filtered_df[filtered_df['CLOSED/OPEN'].str.lower().str.strip() == 'open'])
+                    st.metric(
+                        label="Open Complaints",
+                        value=f"{open_complaints:,}",
+                        delta=f"{(open_complaints/total_complaints*100):.1f}%"
+                    )
+            
+            with col3:
+                if 'COMPLAINT TYPE' in filtered_df.columns:
+                    unique_types = filtered_df['COMPLAINT TYPE'].nunique()
+                    st.metric(
+                        label="Complaint Types",
+                        value=f"{unique_types}",
+                    )
+            
+            with col4:
+                if 'DATE' in filtered_df.columns:
+                    filtered_df['DATE'] = pd.to_datetime(filtered_df['DATE'])
+                    avg_age = (datetime.now() - filtered_df['DATE']).dt.days.mean()
+                    st.metric(
+                        label="Avg Age (Days)",
+                        value=f"{avg_age:.0f}",
+                    )
+            
+            st.markdown("---")
+            
+            # ========================================
+            # INTERACTIVE DATAFRAME DISPLAY
+            # ========================================
+            st.markdown("### 📋 Dataset Overview")
+            
+            # Display info about the dataset
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+                    <div class="info-box">
+                        <strong>Dataset Information:</strong><br>
+                        • Rows: {len(filtered_df):,}<br>
+                        • Columns: {len(filtered_df.columns)}<br>
+                        • Memory: {filtered_df.memory_usage(deep=True).sum() / 1024**2:.2f} MB
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                if 'DATE' in filtered_df.columns:
+                    min_date = filtered_df['DATE'].min()
+                    max_date = filtered_df['DATE'].max()
+                    st.markdown(f"""
+                        <div class="success-box">
+                            <strong>Date Range:</strong><br>
+                            • From: {min_date.strftime('%Y-%m-%d')}<br>
+                            • To: {max_date.strftime('%Y-%m-%d')}<br>
+                            • Duration: {(max_date - min_date).days} days
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+            # Dataframe display with optional styling
+            st.markdown("#### 🔍 Data Table")
+            
+            display_df = filtered_df.head(num_rows)
+            
+            if use_styling:
+                # Apply gradient styling to numeric columns only
+                numeric_cols = display_df.select_dtypes(include=[np.number]).columns.tolist()
+                if numeric_cols:
+                    styled_df = display_df.style.background_gradient(
+                        cmap='RdYlGn_r',
+                        subset=numeric_cols
+                    )
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                else:
+                    st.dataframe(display_df, use_container_width=True, height=400)
+            else:
+                st.dataframe(display_df, use_container_width=True, height=400)
+            
+            # Download button
+            csv = create_download_link(filtered_df)
+            st.download_button(
+                label="📥 Download Filtered Data (CSV)",
+                data=csv,
+                file_name=f"complaint_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+            )
+            
+            st.markdown("---")
+            
+            # ========================================
+            # VISUALIZATIONS SECTION - FIXED
+            # ========================================
+            st.markdown("### 📊 Data Visualizations")
+            
+            # Tab layout for different visualizations
+            viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
+                "📈 Time Series", 
+                "🔵 Complaint Types", 
+                "🌡️ Aging Analysis",
+                "📊 Additional Insights"
+            ])
+            
+            with viz_tab1:
+                st.markdown("#### Time Series Analysis")
+                
+                # Map visualization type
+                chart_type_map = {
+                    "Line Chart": "line",
+                    "Bar Chart": "bar",
+                    "Area Chart": "area"
+                }
+                
+                with st.spinner("Generating time series chart..."):
+                    # FIXED: Pass DataFrame instead of dataset_path
+                    create_time_series_chart(filtered_df, chart_type_map[viz_type])
+                
+                with st.expander("📊 Monthly Trends"):
+                    create_monthly_trend_chart(filtered_df)
+            
+            with viz_tab2:
+                st.markdown("#### Complaint Type Distribution")
+                
+                complaint_chart_map = {
+                    "Bar Chart": "bar",
+                    "Pie Chart": "pie",
+                    "Horizontal Bar": "horizontal_bar"
+                }
+                
+                with st.spinner("Generating complaint type chart..."):
+                    create_complaint_type_chart(filtered_df, complaint_chart_map[complaint_viz_type])
+                
+                with st.expander("📊 Query/Request/Complaint Distribution"):
+                    if 'QUERY/REQUEST/COMPLAINT' in filtered_df.columns:
+                        create_qrc_chart(filtered_df)
+            
+            with viz_tab3:
+                st.markdown("#### Aging Analysis for Open Complaints")
+                
+                with st.spinner("Generating aging analysis..."):
+                    # FIXED: Pass DataFrame instead of dataset_path
+                    create_aging_heatmap(filtered_df)
+                
+                # Display aging table
+                with st.expander("📋 View Aging Pivot Table"):
+                    # FIXED: Pass DataFrame instead of dataset_path
+                    aging_table = agging_all_open_pivot_table(filtered_df)
+                    st.dataframe(aging_table, use_container_width=True)
+            
+            with viz_tab4:
+                st.markdown("#### Additional Insights")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if 'CLOSED/OPEN' in filtered_df.columns:
+                        st.markdown("##### Status Distribution")
+                        status_counts = filtered_df['CLOSED/OPEN'].value_counts()
+                        fig = px.pie(
+                            values=status_counts.values,
+                            names=status_counts.index,
+                            title="Open vs Closed Status",
+                            color_discrete_sequence=['#FF6B6B', '#4ECDC4']
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    if 'DATE' in filtered_df.columns:
+                        st.markdown("##### Complaints by Day of Week")
+                        temp_df = filtered_df.copy()
+                        temp_df['DAY_OF_WEEK'] = pd.to_datetime(temp_df['DATE']).dt.day_name()
+                        day_counts = temp_df['DAY_OF_WEEK'].value_counts()
+                        
+                        # Reorder by weekday
+                        day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                        day_counts = day_counts.reindex([d for d in day_order if d in day_counts.index])
+                        
+                        fig = px.bar(
+                            x=day_counts.index,
+                            y=day_counts.values,
+                            labels={'x': 'Day of Week', 'y': 'Count'},
+                            title="Complaints by Day of Week"
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+            
+            st.markdown("---")
+            
+            # ========================================
+            # DATA SUMMARY SECTION
+            # ========================================
+            with st.expander("📊 Detailed Data Summary"):
+                st.markdown("#### Column Statistics")
+                
+                # Display column info
+                col_info = pd.DataFrame({
+                    'Column Name': filtered_df.columns,
+                    'Data Type': filtered_df.dtypes.values,
+                    'Non-Null Count': filtered_df.count().values,
+                    'Null Count': filtered_df.isnull().sum().values,
+                    'Unique Values': [filtered_df[col].nunique() for col in filtered_df.columns]
+                })
+                
+                st.dataframe(col_info, use_container_width=True)
+                
+                st.markdown("#### Numeric Column Statistics")
+                if not filtered_df.select_dtypes(include=[np.number]).empty:
+                    st.dataframe(filtered_df.describe(), use_container_width=True)
+                else:
+                    st.info("No numeric columns available for statistical summary")
+            
+            # ========================================
+            # FOOTER
+            # ========================================
+            st.markdown("---")
+            st.markdown("""
+                <div style='text-align: center; color: #666; padding: 2rem;'>
+                    <p>📊 Complaint Analysis Dashboard | Built with Streamlit</p>
+                    <p style='font-size: 0.8rem;'>Last updated: {}</p>
+                </div>
+            """.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')), unsafe_allow_html=True)
+            
+            if logger:
+                logger.info("Tab 4 analysis completed successfully")
+    
     except Exception as e:
-        error_msg = str(CustomException(e, sys))
-        logger.error(f"Unhandled error in Streamlit dashboard Tab 4 | error={error_msg}")
-        st.error("❌ An unexpected error occurred while loading the dashboard.")
+        error_msg = f"Error in Tab 4: {str(e)}"
+        if logger:
+            logger.error(error_msg)
+        st.error(f"❌ An unexpected error occurred: {error_msg}")
         with st.expander("Show error details"):
             st.code(error_msg)
