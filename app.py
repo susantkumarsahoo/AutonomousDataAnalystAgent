@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 # CACHED FUNCTIONS - Expensive operations cached for performance
 # ============================================================================
 
-@st.cache_data(ttl=30, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def get_cached_dataset_path():
     """Cache dataset path lookup for 30 seconds"""
     try:
@@ -43,9 +43,9 @@ def get_cached_dataset_path():
         logger.info(f"No dataset found: {e}")
         return None, str(e)
 
-@st.cache_data(ttl=10, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)  # Increased TTL to reduce API calls
 def check_api_status_cached():
-    """Cache API status check for 10 seconds to reduce API calls"""
+    """Cache API status check for 30 seconds to reduce API calls"""
     try:
         is_connected, api_data = check_api_status()
         return is_connected, api_data
@@ -53,7 +53,7 @@ def check_api_status_cached():
         logger.error("API status check error | error=%s", str(e))
         return False, {"message": str(e), "dataset_path": None, "dataset_available": False}
 
-@st.cache_data(ttl=5, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)  # Increased TTL
 def check_fastapi_health():
     """Cache FastAPI health check"""
     try:
@@ -68,7 +68,7 @@ def check_fastapi_health():
         logger.error("FastAPI healthcheck error | error=%s", str(e))
         return "error"
 
-@st.cache_data(ttl=5, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)  # Increased TTL
 def check_flask_health():
     """Cache Flask API health check"""
     try:
@@ -125,6 +125,14 @@ def initialize_session_state():
     # Error tracking
     if 'error_history' not in st.session_state:
         st.session_state.error_history = []
+    
+    # NEW: Prevent unnecessary reruns
+    if 'initialized' not in st.session_state:
+        st.session_state.initialized = True
+    
+    # NEW: Track if we need to rerun
+    if 'force_rerun' not in st.session_state:
+        st.session_state.force_rerun = False
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -169,16 +177,14 @@ try:
     # Create data directory if it doesn't exist
     os.makedirs(SAVE_DIR, exist_ok=True)
     
-    # Get initial dataset path
-    dataset_path, error = get_cached_dataset_path()
+    # Get initial dataset path (only if not already set)
+    if st.session_state.dataset_path is None:
+        dataset_path, error = get_cached_dataset_path()
+        if dataset_path:
+            st.session_state.dataset_path = dataset_path
     
-    # Update session state if we found a dataset
-    if dataset_path:
-        st.session_state.dataset_path = dataset_path
-    
-    # Use session state dataset path if available
-    if st.session_state.dataset_path:
-        dataset_path = st.session_state.dataset_path
+    # Use session state dataset path
+    dataset_path = st.session_state.dataset_path
 
     # -------------------------------------------------------------------------
     # Page Configuration
@@ -242,26 +248,40 @@ try:
         """, unsafe_allow_html=True)
     
         # Dashboard selection with session state
+        # FIXED: Use index based on session state to prevent reruns
+        dashboard_options = [
+            "📈 Analysis Dashboard",
+            "📊 Mathematics & Statistical Analysis",
+            "🔮 Twitter Flow Prediction",
+            "🕒 Time Series Analysis",
+            "📝 Sentiment Analysis",
+            "🗂️ CRM Database",
+            "🤖 AI Chatbot"
+        ]
+        
+        # Get current index
+        try:
+            current_index = dashboard_options.index(st.session_state.selected_dashboard)
+        except ValueError:
+            current_index = 0
+        
         dashboard_type = st.radio(
             "Select Dashboard",
-            [
-                "📈 Analysis Dashboard",
-                "📊 Mathematics & Statistical Analysis",
-                "🔮 Twitter Flow Prediction",
-                "🕒 Time Series Analysis",
-                "📝 Sentiment Analysis",
-                "🗂️ CRM Database",
-                "🤖 AI Chatbot"
-            ],
-            index=0,
+            dashboard_options,
+            index=current_index,
             key='dashboard_selector',
             label_visibility="collapsed",
         )
         
-        # Update session state when selection changes
+        # FIXED: Only update and log when actually changed
         if dashboard_type != st.session_state.selected_dashboard:
             st.session_state.selected_dashboard = dashboard_type
-            logger.info(f"Dashboard changed to: {dashboard_type}")
+            # Only log when dashboard actually changes, not on every rerun
+            try:
+                dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
+                logger.info("Dashboard changed to: %s", dashboard_type_clean)
+            except:
+                logger.info("Dashboard changed")
 
         st.divider()
 
@@ -299,47 +319,52 @@ try:
 
         # Handle file upload
         if uploaded_file is not None:
-            with st.spinner("📤 Uploading file..."):
-                try:
-                    # Remove previous files
-                    for file in os.listdir(SAVE_DIR):
-                        file_path_to_remove = os.path.join(SAVE_DIR, file)
-                        try:
-                            if os.path.isfile(file_path_to_remove):
-                                os.remove(file_path_to_remove)
-                                logger.info("Removed previous file | path=%s", file_path_to_remove)
-                        except Exception as e:
-                            logger.error("Error removing file | path=%s | error=%s", 
-                                       file_path_to_remove, str(e))
-                    
-                    # Save new file
-                    file_path = os.path.join(SAVE_DIR, uploaded_file.name)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
+            # FIXED: Check if this is a new upload to prevent processing on every rerun
+            current_file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+            
+            if 'last_uploaded_file_id' not in st.session_state or st.session_state.last_uploaded_file_id != current_file_id:
+                with st.spinner("📤 Uploading file..."):
+                    try:
+                        # Remove previous files
+                        for file in os.listdir(SAVE_DIR):
+                            file_path_to_remove = os.path.join(SAVE_DIR, file)
+                            try:
+                                if os.path.isfile(file_path_to_remove):
+                                    os.remove(file_path_to_remove)
+                                    logger.info("Removed previous file | path=%s", file_path_to_remove)
+                            except Exception as e:
+                                logger.error("Error removing file | path=%s | error=%s", 
+                                           file_path_to_remove, str(e))
+                        
+                        # Save new file
+                        file_path = os.path.join(SAVE_DIR, uploaded_file.name)
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
 
-                    # Update session state
-                    st.session_state.dataset_path = file_path
-                    st.session_state.last_upload_time = datetime.now()
-                    st.session_state.upload_count += 1
-                    st.session_state.show_success_message = True
-                    
-                    # Clear cache to force refresh
-                    clear_all_cache()
+                        # Update session state
+                        st.session_state.dataset_path = file_path
+                        st.session_state.last_upload_time = datetime.now()
+                        st.session_state.upload_count += 1
+                        st.session_state.show_success_message = True
+                        st.session_state.last_uploaded_file_id = current_file_id
+                        
+                        # Clear cache to force refresh
+                        clear_all_cache()
 
-                    logger.info("New file saved | path=%s", file_path)
+                        logger.info("New file saved | path=%s", file_path)
+                        
+                        # Show success message
+                        st.success(f"✅ **{uploaded_file.name}** uploaded successfully!")
+                        st.info("🔄 Click **'Refresh System'** below to update the entire application")
+                        
+                        # Update dataset_path variable
+                        dataset_path = file_path
                     
-                    # Show success message
-                    st.success(f"✅ **{uploaded_file.name}** uploaded successfully!")
-                    st.info("🔄 Click **'Refresh System'** below to update the entire application")
-                    
-                    # Update dataset_path variable
-                    dataset_path = file_path
-                
-                except Exception as e:
-                    error_msg = f"Error uploading file: {str(e)}"
-                    st.error(f"❌ {error_msg}")
-                    add_error_to_history(error_msg)
-                    logger.error("File upload error | error=%s", str(e))
+                    except Exception as e:
+                        error_msg = f"Error uploading file: {str(e)}"
+                        st.error(f"❌ {error_msg}")
+                        add_error_to_history(error_msg)
+                        logger.error("File upload error | error=%s", str(e))
 
         st.divider()
 
@@ -380,7 +405,8 @@ try:
                                 st.success(f"✅ System refreshed successfully!")
                                 st.info(f"📄 Active dataset: {os.path.basename(latest_file)}")
                                 
-                                # Force rerun
+                                # FIXED: Use st.rerun() properly without triggering on every click
+                                st.session_state.force_rerun = True
                                 st.rerun()
                             else:
                                 st.warning("⚠️ No dataset found in directory. Please upload a file first.")
@@ -434,6 +460,8 @@ try:
         if st.button("🔄 Refresh API Status", use_container_width=True):
             # Clear only API-related cache
             check_api_status_cached.clear()
+            check_fastapi_health.clear()
+            check_flask_health.clear()
             logger.info("API status refresh triggered")
             st.rerun()
 
@@ -587,24 +615,29 @@ try:
     # Everything is ready - show the dashboard
     else:
         try:
-            # Strip emoji from dashboard_type for logging
-            dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
-            logger.info("Rendering dashboard | type=%s | dataset=%s", 
-                       dashboard_type_clean, os.path.basename(dataset_path))
+            # Set environment variable for dataset path
+            os.environ['DATASET_PATH'] = dataset_path
             
             # Show celebration only on first successful load
             if st.session_state.show_success_message:
                 st.balloons()
                 st.session_state.show_success_message = False
             
-            # Set environment variable for dataset path
-            os.environ['DATASET_PATH'] = dataset_path
-            
             # Render the selected dashboard
-            with st.spinner(f"Loading {dashboard_type}..."):
+            # FIXED: Only show spinner and log on actual dashboard changes
+            if 'last_rendered_dashboard' not in st.session_state or st.session_state.last_rendered_dashboard != dashboard_type:
+                with st.spinner(f"Loading {dashboard_type}..."):
+                    analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
+                    st.session_state.last_rendered_dashboard = dashboard_type
+                    
+                    try:
+                        dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
+                        logger.info("Dashboard rendered successfully | type=%s", dashboard_type_clean)
+                    except:
+                        logger.info("Dashboard rendered successfully")
+            else:
+                # Just render without spinner if it's the same dashboard
                 analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
-            
-            logger.info("Dashboard rendered successfully | type=%s", dashboard_type_clean)
         
         except Exception as e:
             error_msg = str(CustomException(e, sys))

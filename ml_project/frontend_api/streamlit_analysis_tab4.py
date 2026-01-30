@@ -307,15 +307,15 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
     try:
         with tab4:
             # Load custom CSS
-            load_custom_css()
+
             
             # ========================================
             # HEADER SECTION
             # ========================================
             st.markdown("""
                 <div class="custom-header">
-                    <h1>📊 Text Row Data Analysis Dashboard</h1>
-                    <p>Comprehensive analysis and visualization of complaint data</p>
+                    <h1>📊 PPT/Exclusive Analysis Dashboard</h1>
+                    <p>Comprehensive analysis and visualization of reports</p>
                 </div>
             """, unsafe_allow_html=True)
             
@@ -392,15 +392,7 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                     use_styling = st.checkbox("Apply Color Gradient", value=True,
                                              help="Apply color gradient to numeric columns")
                 
-                st.markdown("---")
-                st.markdown("### ℹ️ About")
-                st.info("""
-                    This dashboard provides comprehensive analysis of complaint data including:
-                    - Time series trends
-                    - Complaint type distribution
-                    - Aging analysis
-                    - Interactive filtering
-                """)
+
             
             # ========================================
             # LOAD DATA
@@ -772,10 +764,16 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             
             st.divider()
             
+            
+            
+            
             # Section 4: Aging Analysis for Open Complaints
             st.subheader("⏰ Aging Analysis - Open Complaints")
+
             with st.spinner("Analyzing aging buckets..."):
                 aging_pivot = agging_all_open_pivot_table(df)
+                
+                # Display pivot table
                 st.dataframe(
                     aging_pivot,
                     use_container_width=True,
@@ -783,7 +781,7 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 )
                 
                 # Summary metrics
-                st.markdown("### Key Metrics")
+                st.markdown("### 📊 Key Metrics")
                 total_open = aging_pivot.loc[aging_pivot['COMPLAINT TYPE'] == 'Grand_Total', 'Grand_Total'].values[0]
                 
                 col5, col6, col7 = st.columns(3)
@@ -791,12 +789,259 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                     st.metric("Total Open Complaints", f"{total_open:,}")
                 with col6:
                     overdue = aging_pivot.loc[aging_pivot['COMPLAINT TYPE'] == 'Grand_Total', '>180Days'].values[0]
-                    st.metric("Overdue (>180 Days)", f"{overdue:,}")
+                    pct_overdue = (overdue / total_open * 100) if total_open > 0 else 0
+                    st.metric("Overdue (>180 Days)", f"{overdue:,}", f"{pct_overdue:.1f}%")
                 with col7:
                     recent = aging_pivot.loc[aging_pivot['COMPLAINT TYPE'] == 'Grand_Total', '<15Days'].values[0]
-                    st.metric("Recent (<15 Days)", f"{recent:,}")
-            
-# ========================================
+                    pct_recent = (recent / total_open * 100) if total_open > 0 else 0
+                    st.metric("Recent (<15 Days)", f"{recent:,}", f"{pct_recent:.1f}%")
+                
+                st.markdown("---")
+                
+                # Visualization Controls
+                st.markdown("### 📈 Interactive Visualizations")
+                
+                # Filter options
+                col_filter1, col_filter2 = st.columns(2)
+                
+                with col_filter1:
+                    # Exclude Grand Total for visualizations
+                    complaint_types = aging_pivot[aging_pivot['COMPLAINT TYPE'] != 'Grand_Total']['COMPLAINT TYPE'].tolist()
+                    
+                    # Multi-select for complaint types
+                    selected_complaints = st.multiselect(
+                        "Select Complaint Types to Display",
+                        options=complaint_types,
+                        default=complaint_types[:5] if len(complaint_types) > 5 else complaint_types,
+                        help="Choose which complaint types to show in the charts"
+                    )
+                
+                with col_filter2:
+                    # Chart type selector
+                    chart_view = st.radio(
+                        "Select View",
+                        options=["Both Charts", "Line Chart Only", "Bar Chart Only"],
+                        horizontal=True
+                    )
+                
+                # Filter data based on selection
+                if selected_complaints:
+                    filtered_data = aging_pivot[aging_pivot['COMPLAINT TYPE'].isin(selected_complaints)]
+                else:
+                    st.warning("⚠️ Please select at least one complaint type to display charts")
+                    filtered_data = pd.DataFrame()
+                
+                if not filtered_data.empty:
+                    # Prepare data for visualizations
+                    age_columns = ['<15Days', '16-30Days', '31-60Days', '61-90Days', '91-180Days', '>180Days']
+                    
+                    # LINE CHART
+                    if chart_view in ["Both Charts", "Line Chart Only"]:
+                        if chart_view == "Both Charts":
+                            viz_col1, viz_col2 = st.columns(2)
+                            line_container = viz_col1
+                        else:
+                            line_container = st.container()
+                        
+                        with line_container:
+                            st.markdown("#### 📉 Aging Trend by Complaint Type")
+                            
+                            # Prepare data for line chart
+                            line_data = filtered_data.melt(
+                                id_vars=['COMPLAINT TYPE'],
+                                value_vars=age_columns,
+                                var_name='Age Bucket',
+                                value_name='Count'
+                            )
+                            
+                            # Create interactive line chart
+                            fig_line = px.line(
+                                line_data,
+                                x='Age Bucket',
+                                y='Count',
+                                color='COMPLAINT TYPE',
+                                markers=True,
+                                title='Complaint Distribution Across Age Buckets',
+                                labels={'Count': 'Number of Complaints', 'Age Bucket': 'Age Range'},
+                                hover_data={'Count': ':,'}
+                            )
+                            
+                            fig_line.update_traces(
+                                mode='lines+markers',
+                                marker=dict(size=8),
+                                line=dict(width=2.5)
+                            )
+                            
+                            fig_line.update_layout(
+                                hovermode='x unified',
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                xaxis=dict(
+                                    showgrid=True,
+                                    gridcolor='lightgray',
+                                    gridwidth=0.5
+                                ),
+                                yaxis=dict(
+                                    showgrid=True,
+                                    gridcolor='lightgray',
+                                    gridwidth=0.5
+                                ),
+                                legend=dict(
+                                    orientation="v",
+                                    yanchor="top",
+                                    y=1,
+                                    xanchor="left",
+                                    x=1.02
+                                ),
+                                height=500
+                            )
+                            
+                            st.plotly_chart(fig_line, use_container_width=True)
+                    
+                    # HORIZONTAL BAR CHART
+                    if chart_view in ["Both Charts", "Bar Chart Only"]:
+                        if chart_view == "Both Charts":
+                            # viz_col2 is already defined above
+                            bar_container = viz_col2
+                        else:
+                            bar_container = st.container()
+                        
+                        with bar_container:
+                            st.markdown("#### 📊 Total Complaints by Type")
+                            
+                            # Prepare data for horizontal bar chart
+                            bar_data = filtered_data[['COMPLAINT TYPE', 'Grand_Total']].copy()
+                            bar_data = bar_data.sort_values('Grand_Total', ascending=True)
+                            
+                            # Create horizontal bar chart
+                            fig_bar = px.bar(
+                                bar_data,
+                                x='Grand_Total',
+                                y='COMPLAINT TYPE',
+                                orientation='h',
+                                title='Total Open Complaints by Type',
+                                labels={'Grand_Total': 'Total Count', 'COMPLAINT TYPE': 'Complaint Type'},
+                                text='Grand_Total',
+                                color='Grand_Total',
+                                color_continuous_scale='RdYlGn_r'
+                            )
+                            
+                            fig_bar.update_traces(
+                                texttemplate='%{text:,}',
+                                textposition='outside',
+                                textfont=dict(size=11)
+                            )
+                            
+                            fig_bar.update_layout(
+                                showlegend=False,
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                xaxis=dict(
+                                    showgrid=True,
+                                    gridcolor='lightgray',
+                                    gridwidth=0.5
+                                ),
+                                yaxis=dict(
+                                    showgrid=False
+                                ),
+                                height=500,
+                                coloraxis_showscale=False
+                            )
+                            
+                            st.plotly_chart(fig_bar, use_container_width=True)
+                    
+                    # STACKED BAR CHART (Additional visualization)
+                    st.markdown("#### 🎯 Detailed Age Distribution")
+                    
+                    # Toggle for stacked view
+                    show_percentage = st.checkbox("Show as Percentage", value=False)
+                    
+                    # Prepare data for stacked bar
+                    stacked_data = filtered_data.copy()
+                    
+                    if show_percentage:
+                        # Calculate percentages
+                        for col in age_columns:
+                            stacked_data[col] = (stacked_data[col] / stacked_data['Grand_Total'] * 100).round(1)
+                    
+                    # Create stacked bar chart
+                    fig_stacked = go.Figure()
+                    
+                    colors = ['#2ecc71', '#f39c12', '#e67e22', '#e74c3c', '#c0392b', '#8e44ad']
+                    
+                    for idx, age_col in enumerate(age_columns):
+                        fig_stacked.add_trace(go.Bar(
+                            name=age_col,
+                            x=stacked_data['COMPLAINT TYPE'],
+                            y=stacked_data[age_col],
+                            marker_color=colors[idx],
+                            text=stacked_data[age_col],
+                            texttemplate='%{text:.1f}%' if show_percentage else '%{text:,}',
+                            textposition='inside',
+                            hovertemplate='<b>%{x}</b><br>' +
+                                        f'{age_col}: ' + 
+                                        ('%{y:.1f}%' if show_percentage else '%{y:,}') +
+                                        '<extra></extra>'
+                        ))
+                    
+                    fig_stacked.update_layout(
+                        barmode='stack',
+                        title='Age Bucket Distribution by Complaint Type',
+                        xaxis_title='Complaint Type',
+                        yaxis_title='Percentage (%)' if show_percentage else 'Number of Complaints',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        xaxis=dict(
+                            showgrid=False,
+                            tickangle=-45
+                        ),
+                        yaxis=dict(
+                            showgrid=True,
+                            gridcolor='lightgray',
+                            gridwidth=0.5
+                        ),
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1
+                        ),
+                        height=500,
+                        hovermode='closest'
+                    )
+                    
+                    st.plotly_chart(fig_stacked, use_container_width=True)
+                    
+                    # Download options
+                    st.markdown("---")
+                    st.markdown("### 💾 Download Data")
+                    
+                    download_col1, download_col2 = st.columns(2)
+                    
+                    with download_col1:
+                        # Download filtered data as CSV
+                        csv_data = filtered_data.to_csv(index=False)
+                        st.download_button(
+                            label="📥 Download Filtered Data (CSV)",
+                            data=csv_data,
+                            file_name="aging_analysis_filtered.csv",
+                            mime="text/csv"
+                        )
+                    
+                    with download_col2:
+                        # Download full pivot table
+                        csv_full = aging_pivot.to_csv(index=False)
+                        st.download_button(
+                            label="📥 Download Full Data (CSV)",
+                            data=csv_full,
+                            file_name="aging_analysis_full.csv",
+                            mime="text/csv"
+                        )
+
+
+        
+            # ========================================
             # VISUALIZATIONS SECTION - FIXED
             # ========================================
             st.markdown("### 📊 Data Visualizations")
