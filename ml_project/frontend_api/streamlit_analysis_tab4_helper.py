@@ -178,4 +178,14 @@ def agging_all_open_pivot_table(data):
     
     return pivot_data
 
+
+def style_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply styling to dataframe for better visualization"""
+    return df.style.background_gradient(cmap='RdYlGn_r', subset=pd.IndexSlice[:, df.select_dtypes(include=[np.number]).columns])
+
+def create_download_link(df: pd.DataFrame, filename: str = "filtered_data.csv"):
+    """Create a download button for the dataframe"""
+    csv = df.to_csv(index=False)
+    return csv
+
 # streamlit_analysis_tab4_helper.py

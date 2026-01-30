@@ -25,6 +25,10 @@ from ml_project.frontend_api.streamlit_analysis_tab4_helper import (
     get_qrc_value_counts,
     get_complaint_type_value_counts_type,
     agging_all_open_pivot_table,
+    style_dataframe,
+    create_download_link,
+
+
 )
 from ml_project.frontend_api.streamlit_cache_data import(
 load_excel_data,
@@ -57,123 +61,6 @@ if sys.platform == "win32":
         pass  # Python version doesn't support reconfigure
 
 logger = get_logger(__name__)
-
-# ================================================================
-# CONFIGURATION
-# ================================================================
-
-# Custom CSS for better design
-def load_custom_css():
-    st.markdown("""
-        <style>
-        /* Main container styling */
-        .main {
-            padding: 2rem;
-        }
-        
-        /* Header styling */
-        .custom-header {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            padding: 2rem;
-            border-radius: 10px;
-            color: white;
-            text-align: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Card styling */
-        .metric-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid #667eea;
-            margin-bottom: 1rem;
-        }
-        
-        /* Dataframe styling */
-        .dataframe-container {
-            background: white;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Button styling */
-        .stButton>button {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 5px;
-            padding: 0.5rem 2rem;
-            border: none;
-            font-weight: bold;
-        }
-        
-        .stButton>button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-            transition: all 0.3s ease;
-        }
-        
-        /* Expander styling */
-        .streamlit-expanderHeader {
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        
-        /* Info box styling */
-        .info-box {
-            background-color: #e7f3ff;
-            padding: 1rem;
-            border-radius: 5px;
-            border-left: 4px solid #2196F3;
-            margin: 1rem 0;
-        }
-        
-        /* Success box styling */
-        .success-box {
-            background-color: #e8f5e9;
-            padding: 1rem;
-            border-radius: 5px;
-            border-left: 4px solid #4CAF50;
-            margin: 1rem 0;
-        }
-        
-        /* Control panel styling */
-        .control-panel {
-            background-color: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-# ================================================================
-# HELPER FUNCTIONS
-# ================================================================
-
-@st.cache_data
-def load_excel_data(dataset_path: str) -> pd.DataFrame:
-    """Load Excel data with caching for performance"""
-    try:
-        df = pd.read_excel(dataset_path)
-        return df
-    except Exception as e:
-        st.error(f"Error loading dataset: {str(e)}")
-        return pd.DataFrame()
-
-def style_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply styling to dataframe for better visualization"""
-    return df.style.background_gradient(cmap='RdYlGn_r', subset=pd.IndexSlice[:, df.select_dtypes(include=[np.number]).columns])
-
-def create_download_link(df: pd.DataFrame, filename: str = "filtered_data.csv"):
-    """Create a download button for the dataframe"""
-    csv = df.to_csv(index=False)
-    return csv
 
 # ================================================================
 # VISUALIZATION FUNCTIONS - FIXED TO ACCEPT DATAFRAMES
@@ -320,7 +207,7 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             """, unsafe_allow_html=True)
             
             # ========================================
-            # CONTROL PANEL (Previously Sidebar Content)
+            # CONTROL PANEL
             # ========================================
             with st.expander("🎛️ Control Panel & Filters", expanded=True):
                 st.markdown("### 🎛️ Control Panel")
@@ -710,63 +597,388 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 else:
                     st.warning("⚠️ Please select at least one status to display")
             
-            st.divider()
-            
-            # Section 2: Query/Request/Complaint Distribution
-            st.subheader("🔍 Query/Request/Complaint Distribution")
-            col1, col2 = st.columns([1, 1])
-            
-            with col1:
-                with st.spinner("Analyzing complaint categories..."):
-                    qrc_counts = get_qrc_value_counts(df)
-                    st.dataframe(
+                st.divider()
+
+                
+                st.subheader("🔍 Query/Request/Complaint Distribution")
+                col1, col2 = st.columns([1, 1])
+                
+                with col1:
+                    with st.spinner("Analyzing complaint categories..."):
+                        qrc_counts = get_qrc_value_counts(df)
+                        st.dataframe(
+                            qrc_counts,
+                            use_container_width=True,
+                            hide_index=True
+                        )
+                
+                with col2:
+                    # Pie chart for QRC distribution
+                    fig_qrc = px.pie(
                         qrc_counts,
-                        use_container_width=True,
-                        hide_index=True
+                        values='count',
+                        names='QUERY/REQUEST/COMPLAINT',
+                        title='Distribution by Category',
+                        hole=0.4,  # Makes it a donut chart for better readability
+                        color_discrete_sequence=px.colors.qualitative.Set3
                     )
-            
-            with col2:
-                # Pie chart for QRC distribution
-                fig_qrc = px.pie(
-                    qrc_counts,
-                    values='count',
-                    names='QUERY/REQUEST/COMPLAINT',
-                    title='Distribution by Category'
-                )
-                st.plotly_chart(fig_qrc, use_container_width=True)
-            
-            st.divider()
-            
+                    fig_qrc.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_qrc, use_container_width=True)
+                
+                st.divider()
+                
+                # Section 3: Top 6 Multitype User Interactions
+                st.subheader("📊 Top Multitype User Interactions")
+                
+                # Check what columns are available in your dataframe
+                # Replace 'MULTITYPE' with the actual column name from your dataset
+                multitype_column = None
+                
+                # Check for possible column names
+                possible_columns = ['MULTITYPE', 'MultiType', 'Type', 'Interaction Type', 'QUERY/REQUEST/COMPLAINT']
+                for col in possible_columns:
+                    if col in df.columns:
+                        multitype_column = col
+                        break
+                
+                if multitype_column:
+                    col1, col2 = st.columns([1, 1])
+                    
+                    with col1:
+                        with st.spinner("Analyzing multitype interactions..."):
+                            # Get top 6 multitype combinations
+                            multitype_counts = df[multitype_column].value_counts().head(6).reset_index()
+                            multitype_counts.columns = ['Interaction Type', 'Count']
+                            
+                            # Horizontal bar chart
+                            fig_multi_bar = px.bar(
+                                multitype_counts,
+                                y='Interaction Type',
+                                x='Count',
+                                orientation='h',
+                                title='Top 6 Interaction Types',
+                                color='Count',
+                                color_continuous_scale='Blues',
+                                text='Count'
+                            )
+                            fig_multi_bar.update_traces(texttemplate='%{text}', textposition='outside')
+                            fig_multi_bar.update_layout(
+                                showlegend=False,
+                                yaxis={'categoryorder': 'total ascending'},
+                                height=400
+                            )
+                            st.plotly_chart(fig_multi_bar, use_container_width=True)
+                    
+                    with col2:
+                        # Treemap visualization for better visual hierarchy
+                        fig_multi_tree = px.treemap(
+                            multitype_counts,
+                            path=['Interaction Type'],
+                            values='Count',
+                            title='Interaction Type Hierarchy',
+                            color='Count',
+                            color_continuous_scale='Viridis',
+                            hover_data={'Count': True}
+                        )
+                        fig_multi_tree.update_traces(
+                            textinfo='label+value',
+                            textposition='middle center',
+                            marker=dict(line=dict(width=2, color='white'))
+                        )
+                        fig_multi_tree.update_layout(height=400)
+                        st.plotly_chart(fig_multi_tree, use_container_width=True)
+                else:
+                    st.warning("⚠️ Multitype column not found in the dataset. Please check your column names.")
+                    st.write("Available columns:", df.columns.tolist())
+
+
+
+
             # Section 3: Top 5 Complaint Types
             st.subheader("🏆 Top 5 Complaint Types")
-            col3, col4 = st.columns([1, 1])
-            
+
+            with st.spinner("Identifying top complaint types..."):
+                complaint_type_counts = get_complaint_type_value_counts_type(df)
+
+            # Create three columns for better layout
+            col3, col4, col5 = st.columns([1, 1, 1])
+
             with col3:
-                with st.spinner("Identifying top complaint types..."):
-                    complaint_type_counts = get_complaint_type_value_counts_type(df)
-                    st.dataframe(
-                        complaint_type_counts,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-            
-            with col4:
-                # Bar chart for top complaint types
-                fig_complaints = px.bar(
+                # Display dataframe with enhanced styling
+                st.markdown("##### 📊 Complaint Data")
+                st.dataframe(
                     complaint_type_counts,
-                    x='COMPLAINT TYPE',
-                    y='count',
-                    title='Top 5 Complaint Types',
-                    labels={'count': 'Number of Complaints'}
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300
                 )
-                fig_complaints.update_layout(xaxis_tickangle=-45)
-                st.plotly_chart(fig_complaints, use_container_width=True)
-            
+                
+                # Add a donut chart below the dataframe
+                st.markdown("##### 🍩 Distribution Overview")
+                fig_donut = px.pie(
+                    complaint_type_counts,
+                    values='count',
+                    names='COMPLAINT TYPE',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_donut.update_traces(
+                    textposition='inside',
+                    textinfo='percent+label',
+                    hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+                )
+                fig_donut.update_layout(
+                    showlegend=False,
+                    height=300,
+                    margin=dict(t=20, b=20, l=20, r=20)
+                )
+                st.plotly_chart(fig_donut, use_container_width=True)
+
+            with col4:
+                # Horizontal bar chart
+                st.markdown("##### 📊 Horizontal Bar Chart")
+                fig_hbar = px.bar(
+                    complaint_type_counts,
+                    y='COMPLAINT TYPE',
+                    x='count',
+                    orientation='h',
+                    color='count',
+                    color_continuous_scale='Blues',
+                    text='count'
+                )
+                fig_hbar.update_traces(
+                    texttemplate='%{text:,}',
+                    textposition='outside',
+                    hovertemplate='<b>%{y}</b><br>Count: %{x:,}<extra></extra>'
+                )
+                fig_hbar.update_layout(
+                    showlegend=False,
+                    height=300,
+                    margin=dict(t=20, b=20, l=20, r=20),
+                    yaxis={'categoryorder': 'total ascending'}
+                )
+                st.plotly_chart(fig_hbar, use_container_width=True)
+                
+                # Lollipop chart
+                st.markdown("##### 🍭 Lollipop Chart")
+                fig_lollipop = go.Figure()
+                
+                # Add stems
+                for idx, row in complaint_type_counts.iterrows():
+                    fig_lollipop.add_trace(go.Scatter(
+                        x=[0, row['count']],
+                        y=[row['COMPLAINT TYPE'], row['COMPLAINT TYPE']],
+                        mode='lines',
+                        line=dict(color='lightblue', width=2),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+                
+                # Add dots
+                fig_lollipop.add_trace(go.Scatter(
+                    x=complaint_type_counts['count'],
+                    y=complaint_type_counts['COMPLAINT TYPE'],
+                    mode='markers',
+                    marker=dict(size=15, color='#1f77b4'),
+                    text=complaint_type_counts['count'],
+                    textposition='middle right',
+                    texttemplate='%{text:,}',
+                    showlegend=False,
+                    hovertemplate='<b>%{y}</b><br>Count: %{x:,}<extra></extra>'
+                ))
+                
+                fig_lollipop.update_layout(
+                    height=300,
+                    margin=dict(t=20, b=20, l=20, r=60),
+                    yaxis={'categoryorder': 'total ascending'},
+                    xaxis_title='Number of Complaints'
+                )
+                st.plotly_chart(fig_lollipop, use_container_width=True)
+
+            with col5:
+                # Treemap
+                st.markdown("##### 🗺️ Treemap Visualization")
+                fig_treemap = px.treemap(
+                    complaint_type_counts,
+                    path=['COMPLAINT TYPE'],
+                    values='count',
+                    color='count',
+                    color_continuous_scale='Viridis',
+                    hover_data={'count': ':,'}
+                )
+                fig_treemap.update_traces(
+                    texttemplate='<b>%{label}</b><br>%{value:,}',
+                    hovertemplate='<b>%{label}</b><br>Count: %{value:,}<br>Percentage: %{percentRoot:.1%}<extra></extra>'
+                )
+                fig_treemap.update_layout(
+                    height=300,
+                    margin=dict(t=20, b=20, l=20, r=20)
+                )
+                st.plotly_chart(fig_treemap, use_container_width=True)
+                
+                # Waffle-style chart (using scatter plot)
+                st.markdown("##### 🧇 Waffle Chart")
+                
+                # Calculate waffle chart data
+                total = complaint_type_counts['count'].sum()
+                waffle_data = []
+                colors = px.colors.qualitative.Set2[:len(complaint_type_counts)]
+                
+                current_pos = 0
+                for idx, (_, row) in enumerate(complaint_type_counts.iterrows()):
+                    percentage = (row['count'] / total) * 100
+                    boxes = int(percentage)
+                    for i in range(boxes):
+                        waffle_data.append({
+                            'x': current_pos % 10,
+                            'y': current_pos // 10,
+                            'type': row['COMPLAINT TYPE'],
+                            'color': colors[idx],
+                            'count': row['count']
+                        })
+                        current_pos += 1
+                
+                waffle_df = pd.DataFrame(waffle_data)
+                
+                fig_waffle = go.Figure()
+                
+                for complaint_type in complaint_type_counts['COMPLAINT TYPE']:
+                    subset = waffle_df[waffle_df['type'] == complaint_type]
+                    if not subset.empty:
+                        fig_waffle.add_trace(go.Scatter(
+                            x=subset['x'],
+                            y=subset['y'],
+                            mode='markers',
+                            marker=dict(
+                                size=20,
+                                color=subset['color'].iloc[0],
+                                symbol='square',
+                                line=dict(width=1, color='white')
+                            ),
+                            name=complaint_type,
+                            text=complaint_type,
+                            hovertemplate='<b>%{text}</b><extra></extra>'
+                        ))
+                
+                fig_waffle.update_layout(
+                    height=300,
+                    showlegend=True,
+                    legend=dict(orientation='h', yanchor='bottom', y=-0.3, xanchor='center', x=0.5),
+                    xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+                    yaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+                    margin=dict(t=20, b=80, l=20, r=20),
+                    plot_bgcolor='white'
+                )
+                st.plotly_chart(fig_waffle, use_container_width=True)
+
+            st.divider()
+
+            # Optional: Add a heatmap if you have temporal data
+            st.markdown("##### 🔥 Heatmap Analysis")
+            col6, col7 = st.columns([2, 1])
+
+            with col6:
+                # Try to find the date column with different possible names
+                date_column = None
+                possible_date_columns = ['Created Date', 'CREATED_DATE', 'created_date', 'Date', 'DATE', 
+                                        'Created_Date', 'CreatedDate', 'Complaint Date', 'COMPLAINT_DATE']
+                
+                for col_name in possible_date_columns:
+                    if col_name in df.columns:
+                        date_column = col_name
+                        break
+                
+                # Also try to find complaint type column
+                complaint_column = None
+                possible_complaint_columns = ['Complaint Type', 'COMPLAINT TYPE', 'complaint_type', 
+                                            'Complaint_Type', 'ComplaintType', 'Type']
+                
+                for col_name in possible_complaint_columns:
+                    if col_name in df.columns:
+                        complaint_column = col_name
+                        break
+                
+                if date_column and complaint_column:
+                    try:
+                        df_temp = df.copy()
+                        df_temp['Date'] = pd.to_datetime(df_temp[date_column], errors='coerce')
+                        
+                        # Remove rows with invalid dates
+                        df_temp = df_temp.dropna(subset=['Date'])
+                        
+                        if len(df_temp) > 0:
+                            df_temp['Hour'] = df_temp['Date'].dt.hour
+                            df_temp['DayOfWeek'] = df_temp['Date'].dt.day_name()
+                            
+                            # Get top 5 complaint types
+                            top_types = complaint_type_counts['COMPLAINT TYPE'].tolist()
+                            df_temp = df_temp[df_temp[complaint_column].isin(top_types)]
+                            
+                            if len(df_temp) > 0:
+                                # Create pivot table
+                                heatmap_data = df_temp.groupby(['DayOfWeek', complaint_column]).size().unstack(fill_value=0)
+                                
+                                # Reorder days
+                                day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                                heatmap_data = heatmap_data.reindex([d for d in day_order if d in heatmap_data.index])
+                                
+                                fig_heatmap = px.imshow(
+                                    heatmap_data.T,
+                                    labels=dict(x="Day of Week", y="Complaint Type", color="Count"),
+                                    color_continuous_scale='YlOrRd',
+                                    aspect='auto',
+                                    text_auto=True
+                                )
+                                fig_heatmap.update_layout(
+                                    height=400,
+                                    margin=dict(t=40, b=20, l=20, r=20),
+                                    xaxis_title="Day of Week",
+                                    yaxis_title="Complaint Type"
+                                )
+                                fig_heatmap.update_traces(
+                                    hovertemplate='<b>%{y}</b><br>%{x}<br>Count: %{z}<extra></extra>'
+                                )
+                                st.plotly_chart(fig_heatmap, use_container_width=True)
+                            else:
+                                st.warning("No data available for top complaint types in the date range.")
+                        else:
+                            st.warning("No valid date data found. Please check your date column format.")
+                    except Exception as e:
+                        st.error(f"Error creating heatmap: {str(e)}")
+                        st.info(f"Available columns: {', '.join(df.columns.tolist())}")
+                else:
+                    # Show available columns to help debug
+                    st.info("📋 Heatmap requires datetime data.")
+                    st.write("**Available columns in your dataset:**")
+                    st.write(df.columns.tolist())
+                    
+                    if not date_column:
+                        st.warning("⚠️ No date column found. Looking for columns like: 'Created Date', 'CREATED_DATE', 'Date', etc.")
+                    if not complaint_column:
+                        st.warning("⚠️ No complaint type column found. Looking for columns like: 'Complaint Type', 'COMPLAINT TYPE', etc.")
+
+            with col7:
+                # Summary metrics
+                st.markdown("##### 📈 Key Metrics")
+                total_complaints = complaint_type_counts['count'].sum()
+                avg_complaints = complaint_type_counts['count'].mean()
+                max_complaint = complaint_type_counts.iloc[0]
+                
+                st.metric("Total Complaints", f"{total_complaints:,}")
+                st.metric("Average per Type", f"{avg_complaints:,.0f}")
+                st.metric("Top Complaint", max_complaint['COMPLAINT TYPE'], 
+                        f"{max_complaint['count']:,} cases")
+                
+                # Percentage breakdown
+                st.markdown("##### 📊 Percentage Breakdown")
+                for _, row in complaint_type_counts.iterrows():
+                    percentage = (row['count'] / total_complaints) * 100
+                    st.progress(percentage / 100, text=f"{row['COMPLAINT TYPE'][:20]}...: {percentage:.1f}%")
+
             st.divider()
             
             
-            
-            
+        
             # Section 4: Aging Analysis for Open Complaints
             st.subheader("⏰ Aging Analysis - Open Complaints")
 
