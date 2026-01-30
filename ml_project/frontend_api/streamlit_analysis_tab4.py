@@ -193,9 +193,6 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
     """
     try:
         with tab4:
-            # Load custom CSS
-
-            
             # ========================================
             # HEADER SECTION
             # ========================================
@@ -207,81 +204,6 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             """, unsafe_allow_html=True)
             
             # ========================================
-            # CONTROL PANEL
-            # ========================================
-            with st.expander("🎛️ Control Panel & Filters", expanded=True):
-                st.markdown("### 🎛️ Control Panel")
-                
-                # Data refresh button
-                col_refresh1, col_refresh2, col_refresh3 = st.columns([1, 1, 2])
-                with col_refresh1:
-                    if st.button("🔄 Refresh Data", use_container_width=True):
-                        st.cache_data.clear()
-                        st.success("Cache cleared! Data will be refreshed.")
-                
-                st.markdown("---")
-                
-                # Create columns for controls
-                control_col1, control_col2 = st.columns(2)
-                
-                with control_col1:
-                    st.markdown("### 📊 Visualization Options")
-                    
-                    # Visualization type selector
-                    viz_type = st.selectbox(
-                        "Select Primary Chart Type",
-                        ["Line Chart", "Bar Chart", "Area Chart"],
-                        help="Choose the type of chart for time series data"
-                    )
-                    
-                    # Secondary chart type
-                    complaint_viz_type = st.selectbox(
-                        "Complaint Type Visualization",
-                        ["Bar Chart", "Pie Chart", "Horizontal Bar"],
-                        help="Choose visualization for complaint types"
-                    )
-                
-                with control_col2:
-                    st.markdown("### 🔍 Data Filters")
-                    
-                    # Date range filter
-                    use_date_filter = st.checkbox("Enable Date Filter", value=False)
-                    
-                    if use_date_filter:
-                        date_range = st.date_input(
-                            "Select Date Range",
-                            value=(datetime.now() - timedelta(days=365), datetime.now()),
-                            help="Filter data by date range"
-                        )
-                    
-                    # Show only open complaints
-                    show_only_open = st.checkbox("Show Only Open Complaints", value=False)
-                
-                st.markdown("---")
-                
-                # Display options in columns
-                display_col1, display_col2 = st.columns(2)
-                
-                with display_col1:
-                    st.markdown("### 📋 Display Options")
-                    num_rows = st.slider(
-                        "Number of rows to display",
-                        min_value=10,
-                        max_value=1000,
-                        value=100,
-                        step=10,
-                        help="Select how many rows to show in the dataframe"
-                    )
-                
-                with display_col2:
-                    st.markdown("### 🎨 Styling Options")
-                    # Dataframe styling option
-                    use_styling = st.checkbox("Apply Color Gradient", value=True,
-                                             help="Apply color gradient to numeric columns")
-                
-
-            
-            # ========================================
             # LOAD DATA
             # ========================================
             with st.spinner("Loading data..."):
@@ -291,19 +213,6 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 st.error("❌ No data available. Please check the dataset path.")
                 return
             
-            # Apply filters
-            filtered_df = df.copy()
-            
-            if use_date_filter and 'date_range' in locals():
-                filtered_df['DATE'] = pd.to_datetime(filtered_df['DATE'])
-                filtered_df = filtered_df[
-                    (filtered_df['DATE'].dt.date >= date_range[0]) & 
-                    (filtered_df['DATE'].dt.date <= date_range[1])
-                ]
-            
-            if show_only_open:
-                filtered_df = filtered_df[filtered_df['CLOSED/OPEN'].str.lower().str.strip() == 'open']
-            
             # ========================================
             # KEY METRICS
             # ========================================
@@ -312,16 +221,15 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                total_complaints = len(filtered_df)
+                total_complaints = len(df)
                 st.metric(
                     label="Total Complaints",
-                    value=f"{total_complaints:,}",
-                    delta=f"{len(df) - total_complaints} filtered" if len(df) != total_complaints else None
+                    value=f"{total_complaints:,}"
                 )
             
             with col2:
-                if 'CLOSED/OPEN' in filtered_df.columns:
-                    open_complaints = len(filtered_df[filtered_df['CLOSED/OPEN'].str.lower().str.strip() == 'open'])
+                if 'CLOSED/OPEN' in df.columns:
+                    open_complaints = len(df[df['CLOSED/OPEN'].str.lower().str.strip() == 'open'])
                     st.metric(
                         label="Open Complaints",
                         value=f"{open_complaints:,}",
@@ -329,17 +237,17 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                     )
             
             with col3:
-                if 'COMPLAINT TYPE' in filtered_df.columns:
-                    unique_types = filtered_df['COMPLAINT TYPE'].nunique()
+                if 'COMPLAINT TYPE' in df.columns:
+                    unique_types = df['COMPLAINT TYPE'].nunique()
                     st.metric(
                         label="Complaint Types",
                         value=f"{unique_types}",
                     )
             
             with col4:
-                if 'DATE' in filtered_df.columns:
-                    filtered_df['DATE'] = pd.to_datetime(filtered_df['DATE'])
-                    avg_age = (datetime.now() - filtered_df['DATE']).dt.days.mean()
+                if 'DATE' in df.columns:
+                    df['DATE'] = pd.to_datetime(df['DATE'])
+                    avg_age = (datetime.now() - df['DATE']).dt.days.mean()
                     st.metric(
                         label="Avg Age (Days)",
                         value=f"{avg_age:.0f}",
@@ -358,16 +266,16 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 st.markdown(f"""
                     <div class="info-box">
                         <strong>Dataset Information:</strong><br>
-                        • Rows: {len(filtered_df):,}<br>
-                        • Columns: {len(filtered_df.columns)}<br>
-                        • Memory: {filtered_df.memory_usage(deep=True).sum() / 1024**2:.2f} MB
+                        • Rows: {len(df):,}<br>
+                        • Columns: {len(df.columns)}<br>
+                        • Memory: {df.memory_usage(deep=True).sum() / 1024**2:.2f} MB
                     </div>
                 """, unsafe_allow_html=True)
             
             with col2:
-                if 'DATE' in filtered_df.columns:
-                    min_date = filtered_df['DATE'].min()
-                    max_date = filtered_df['DATE'].max()
+                if 'DATE' in df.columns:
+                    min_date = df['DATE'].min()
+                    max_date = df['DATE'].max()
                     st.markdown(f"""
                         <div class="success-box">
                             <strong>Date Range:</strong><br>
@@ -377,29 +285,16 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                         </div>
                     """, unsafe_allow_html=True)
             
-            # Dataframe display with optional styling
+            # Dataframe display
             st.markdown("#### 🔍 Data Table")
             
-            display_df = filtered_df.head(num_rows)
-            
-            if use_styling:
-                # Apply gradient styling to numeric columns only
-                numeric_cols = display_df.select_dtypes(include=[np.number]).columns.tolist()
-                if numeric_cols:
-                    styled_df = display_df.style.background_gradient(
-                        cmap='RdYlGn_r',
-                        subset=numeric_cols
-                    )
-                    st.dataframe(styled_df, use_container_width=True, height=400)
-                else:
-                    st.dataframe(display_df, use_container_width=True, height=400)
-            else:
-                st.dataframe(display_df, use_container_width=True, height=400)
+            display_df = df.head(100)
+            st.dataframe(display_df, use_container_width=True, height=400)
             
             # Download button
-            csv = create_download_link(filtered_df)
+            csv = create_download_link(df)
             st.download_button(
-                label="📥 Download Filtered Data (CSV)",
+                label="📥 Download Data (CSV)",
                 data=csv,
                 file_name=f"complaint_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
@@ -1278,10 +1173,10 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 
                 with st.spinner("Generating time series chart..."):
                     # FIXED: Pass DataFrame instead of dataset_path
-                    create_time_series_chart(filtered_df, chart_type_map[viz_type])
+                    create_time_series_chart(df, "line")
                 
                 st.markdown("##### Monthly Trends")
-                create_monthly_trend_chart(filtered_df)
+                create_monthly_trend_chart(df)
             
             with viz_tab2:
                 st.markdown("#### Complaint Type Distribution")
@@ -1293,22 +1188,22 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 }
                 
                 with st.spinner("Generating complaint type chart..."):
-                    create_complaint_type_chart(filtered_df, complaint_chart_map[complaint_viz_type])
+                    create_complaint_type_chart(df, "bar")
                 
                 st.markdown("##### Query/Request/Complaint Distribution")
-                if 'QUERY/REQUEST/COMPLAINT' in filtered_df.columns:
-                    create_qrc_chart(filtered_df)
+                if 'QUERY/REQUEST/COMPLAINT' in df.columns:
+                    create_qrc_chart(df)
             
             with viz_tab3:
                 st.markdown("#### Aging Analysis for Open Complaints")
                 
                 with st.spinner("Generating aging analysis..."):
                     # FIXED: Pass DataFrame instead of dataset_path
-                    create_aging_heatmap(filtered_df)
+                    create_aging_heatmap(df)
                 
                 st.markdown("##### Aging Pivot Table")
                 # FIXED: Pass DataFrame instead of dataset_path
-                aging_table = agging_all_open_pivot_table(filtered_df)
+                aging_table = agging_all_open_pivot_table(df)
                 st.dataframe(aging_table, use_container_width=True, height=400)
             
             with viz_tab4:
@@ -1317,9 +1212,9 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    if 'CLOSED/OPEN' in filtered_df.columns:
+                    if 'CLOSED/OPEN' in df.columns:
                         st.markdown("##### Status Distribution")
-                        status_counts = filtered_df['CLOSED/OPEN'].value_counts()
+                        status_counts = df['CLOSED/OPEN'].value_counts()
                         fig = px.pie(
                             values=status_counts.values,
                             names=status_counts.index,
@@ -1330,9 +1225,9 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
                         st.plotly_chart(fig, use_container_width=True)
                 
                 with col2:
-                    if 'DATE' in filtered_df.columns:
+                    if 'DATE' in df.columns:
                         st.markdown("##### Complaints by Day of Week")
-                        temp_df = filtered_df.copy()
+                        temp_df = df.copy()
                         temp_df['DAY_OF_WEEK'] = pd.to_datetime(temp_df['DATE']).dt.day_name()
                         day_counts = temp_df['DAY_OF_WEEK'].value_counts()
                         
@@ -1360,20 +1255,95 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             
             # Display column info
             col_info = pd.DataFrame({
-                'Column Name': filtered_df.columns,
-                'Data Type': filtered_df.dtypes.values,
-                'Non-Null Count': filtered_df.count().values,
-                'Null Count': filtered_df.isnull().sum().values,
-                'Unique Values': [filtered_df[col].nunique() for col in filtered_df.columns]
+                'Column Name': df.columns,
+                'Data Type': df.dtypes.values,
+                'Non-Null Count': df.count().values,
+                'Null Count': df.isnull().sum().values,
+                'Unique Values': [df[col].nunique() for col in df.columns]
             })
             
             st.dataframe(col_info, use_container_width=True, height=400)
             
             st.markdown("#### Numeric Column Statistics")
-            if not filtered_df.select_dtypes(include=[np.number]).empty:
-                st.dataframe(filtered_df.describe(), use_container_width=True, height=400)
+            if not df.select_dtypes(include=[np.number]).empty:
+                st.dataframe(df.describe(), use_container_width=True, height=400)
             else:
                 st.info("No numeric columns available for statistical summary")
+            
+            st.markdown("---")
+            
+            # ========================================
+            # CONTROL PANEL (MOVED TO BOTTOM)
+            # ========================================
+            with st.expander("🎛️ Control Panel & Filters", expanded=False):
+                st.markdown("### 🎛️ Control Panel")
+                
+                # Data refresh button
+                col_refresh1, col_refresh2, col_refresh3 = st.columns([1, 1, 2])
+                with col_refresh1:
+                    if st.button("🔄 Refresh Data", use_container_width=True):
+                        st.cache_data.clear()
+                        st.success("Cache cleared! Data will be refreshed.")
+                
+                st.markdown("---")
+                
+                # Create columns for controls
+                control_col1, control_col2 = st.columns(2)
+                
+                with control_col1:
+                    st.markdown("### 📊 Visualization Options")
+                    
+                    # Visualization type selector
+                    viz_type = st.selectbox(
+                        "Select Primary Chart Type",
+                        ["Line Chart", "Bar Chart", "Area Chart"],
+                        help="Choose the type of chart for time series data"
+                    )
+                    
+                    # Secondary chart type
+                    complaint_viz_type = st.selectbox(
+                        "Complaint Type Visualization",
+                        ["Bar Chart", "Pie Chart", "Horizontal Bar"],
+                        help="Choose visualization for complaint types"
+                    )
+                
+                with control_col2:
+                    st.markdown("### 🔍 Data Filters")
+                    
+                    # Date range filter
+                    use_date_filter = st.checkbox("Enable Date Filter", value=False)
+                    
+                    if use_date_filter:
+                        date_range = st.date_input(
+                            "Select Date Range",
+                            value=(datetime.now() - timedelta(days=365), datetime.now()),
+                            help="Filter data by date range"
+                        )
+                    
+                    # Show only open complaints
+                    show_only_open = st.checkbox("Show Only Open Complaints", value=False)
+                
+                st.markdown("---")
+                
+                # Display options in columns
+                display_col1, display_col2 = st.columns(2)
+                
+                with display_col1:
+                    st.markdown("### 📋 Display Options")
+                    num_rows = st.slider(
+                        "Number of rows to display",
+                        min_value=10,
+                        max_value=1000,
+                        value=100,
+                        step=10,
+                        help="Select how many rows to show in the dataframe"
+                    )
+                
+                with display_col2:
+                    st.markdown("### 🎨 Styling Options")
+                    # Dataframe styling option
+                    use_styling = st.checkbox("Apply Color Gradient", value=True,
+                                             help="Apply color gradient to numeric columns")
             
             # ========================================
             # FOOTER
