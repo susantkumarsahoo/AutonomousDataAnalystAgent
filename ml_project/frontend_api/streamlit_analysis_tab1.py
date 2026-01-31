@@ -1208,7 +1208,7 @@ def streamlit_analysis_tab1(tab1, dataset_path, logger):
                 else:
                     # Show loading spinner while processing
                     with st.spinner("📊 Loading data..."):
-                        @st.cache_data
+                        @st.cache_data(ttl=600, show_spinner="Fetching Data... Please wait ⏳")
                         def load_complaint_data(path):
                             return generate_all_agging_complaint_report(path)
                         

@@ -1,16 +1,17 @@
+"""
+Analysis Dashboard Module
+Provides lazy-loaded tabs for various data analysis views
+"""
 import os
 import sys
 import time
-import io
-from io import BytesIO
-import requests
+from typing import Optional, Dict, Any
+from pathlib import Path
+
+import streamlit as st
 import pandas as pd
 import numpy as np
-from pathlib import Path
-from typing import Optional
-import streamlit as st
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
+
 from ml_project.utils.helper import read_yaml
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
@@ -21,14 +22,9 @@ from ml_project.frontend_api.streamlit_analysis_tab3 import streamlit_analysis_t
 from ml_project.frontend_api.streamlit_analysis_tab4 import streamlit_analysis_tab4
 
 
-config = read_yaml("ml_project/configs/ml_project_config.yaml")
-dataset = config["data"]["raw_path"]
-
-try:
-    dataset_path = get_dataset_path("data/raw_path")
-    print(f"Dataset found at: {dataset_path}")
-except DatasetNotFoundError as e:
-    print(f"Error: {e}")
+# ============================================================
+# CONFIGURATION & SETUP
+# ============================================================
 
 # Fix Unicode encoding for Windows console
 if sys.platform == "win32":
@@ -38,23 +34,161 @@ if sys.platform == "win32":
     except AttributeError:
         pass  # Python version doesn't support reconfigure
 
+# Initialize logger
 logger = get_logger(__name__)
 
-def analysis_dashboard(dashboard_type: str, dataset_path: Optional[str] = None,
-                       uploaded_file: Optional[object] = None,
+
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def get_config_and_dataset() -> tuple[Dict[str, Any], Optional[str]]:
+    """
+    Load configuration and get dataset path.
+    
+    Returns:
+        tuple: (config dict, dataset_path str or None)
+    """
+    try:
+        config = read_yaml("ml_project/configs/ml_project_config.yaml")
+        dataset_path = get_dataset_path("data/raw_path")
+        logger.info(f"Dataset found at: {dataset_path}")
+        return config, dataset_path
+    except DatasetNotFoundError as e:
+        logger.error(f"Dataset not found: {e}")
+        return {}, None
+    except Exception as e:
+        logger.error(f"Configuration error: {e}")
+        return {}, None
+
+
+def initialize_session_state() -> None:
+    """Initialize all session state variables for tab loading."""
+    tab_keys = [
+        'force_load_tab1', 'force_load_tab2', 'force_load_tab3', 
+        'force_load_tab4', 'force_load_tab5', 'force_load_tab6', 
+        'force_load_tab7'
+    ]
+    
+    for key in tab_keys:
+        if key not in st.session_state:
+            st.session_state[key] = False
+    
+    if 'active_tab' not in st.session_state:
+        st.session_state.active_tab = 0
+
+
+def clean_dashboard_name(dashboard_type: str) -> str:
+    """
+    Remove emojis and special characters from dashboard type for logging.
+    
+    Args:
+        dashboard_type: Dashboard name that may contain emojis
+        
+    Returns:
+        Cleaned dashboard name string
+    """
+    return dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
+
+
+def render_tab_loader(
+    tab_key: str, 
+    tab_name: str, 
+    tab_function: Optional[callable] = None,
+    dataset_path: Optional[str] = None
+) -> None:
+    """
+    Render a lazy-loaded tab with consistent UI.
+    
+    Args:
+        tab_key: Session state key for this tab
+        tab_name: Display name for the tab
+        tab_function: Function to call when loading the tab (optional)
+        dataset_path: Path to dataset (optional)
+    """
+    session_key = f'force_load_{tab_key}'
+    button_key = f'load_{tab_key}'
+    
+    if st.session_state.get(session_key, False) or \
+       st.button(f"🔄 Load {tab_name}", key=button_key, use_container_width=True):
+        st.session_state[session_key] = True
+        
+        if tab_function is not None:
+            with st.spinner(f"Loading {tab_name}..."):
+                try:
+                    tab_function(dataset_path, logger)
+                except Exception as e:
+                    error_msg = str(CustomException(e, sys))
+                    logger.error(f"Error loading {tab_name}: {error_msg}")
+                    st.error(f"❌ Failed to load {tab_name}")
+                    with st.expander("Show error details"):
+                        st.code(error_msg)
+        else:
+            st.success("🛠️ This section is under development.")
+    else:
+        st.info("👆 Click the button above to load this tab's content")
+        st.caption("💡 Data will only be fetched when you load this tab")
+
+
+def render_under_development_placeholder(dashboard_type: str) -> None:
+    """
+    Render placeholder content for dashboards under development.
+    
+    Args:
+        dashboard_type: Name of the dashboard
+    """
+    dashboard_clean = clean_dashboard_name(dashboard_type)
+    st.info(f"🚧 {dashboard_type} is under development. Coming soon!")
+    logger.info("Dashboard under development | type=%s", dashboard_clean)
+
+    with st.expander("📋 Planned Features"):
+        st.markdown(f"""
+        ### {dashboard_type}
+
+        This dashboard will include:
+        - 📊 Advanced analytics features
+        - 📈 Interactive visualizations
+        - ⚡ Real-time data processing
+        - 🤖 Machine learning models
+        - 📤 Export capabilities
+
+        **Status:** In Development  
+        **Expected Release:** Q2 2025
+        """)
+
+
+# ============================================================
+# MAIN DASHBOARD FUNCTION
+# ============================================================
+
+def analysis_dashboard(
+    dashboard_type: str, 
+    dataset_path: Optional[str] = None,
+    uploaded_file: Optional[object] = None,
 ) -> None:
     """
     Render the selected dashboard with lazy tab loading.
 
-    Parameters:
-        dashboard_type (str): Selected dashboard option
-        dataset_path (str): Path to the default dataset
-        uploaded_file (Optional[object]): Optional user-uploaded file
+    Args:
+        dashboard_type: Selected dashboard option
+        dataset_path: Path to the default dataset
+        uploaded_file: Optional user-uploaded file
     """
     try:
-        # Strip emojis from dashboard_type for logging
-        dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
-        logger.info("Rendering analysis dashboard | type=%s", dashboard_type_clean)
+        # Log dashboard rendering
+        dashboard_clean = clean_dashboard_name(dashboard_type)
+        logger.info("Rendering analysis dashboard | type=%s", dashboard_clean)
+        
+        # Initialize session state
+        initialize_session_state()
+        
+        # If dataset_path not provided, try to get it from config
+        if dataset_path is None:
+            _, dataset_path = get_config_and_dataset()
+            if dataset_path is None:
+                st.warning("⚠️ Dataset not found. Some features may be limited.")
         
         # Page Title
         st.title(dashboard_type)
@@ -63,10 +197,6 @@ def analysis_dashboard(dashboard_type: str, dataset_path: Optional[str] = None,
         # ANALYSIS DASHBOARD
         # ==================================================
         if "Analysis Dashboard" in dashboard_type:
-            
-            # Initialize session state for active tab if not exists
-            if 'active_tab' not in st.session_state:
-                st.session_state.active_tab = 0
             
             # Create tabs
             tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
@@ -81,118 +211,111 @@ def analysis_dashboard(dashboard_type: str, dataset_path: Optional[str] = None,
                 ]
             )
 
-            # Map tabs to their indices
-            tabs = [tab1, tab2, tab3, tab4, tab5, tab6, tab7]
-            
-            # Detect active tab by checking which one has content
-            # Streamlit doesn't have built-in tab detection, so we use buttons/radio
-            # Alternative approach: Use radio buttons or selectbox for explicit tab selection
-            
+            st.markdown("""
+                <style>
+                div.stButton > button:first-child {
+                    background-image: linear-gradient(to right, #667eea, #764ba2); /* purple-indigo gradient */
+                    color: white;
+                    border-radius: 10px;
+                    height: 3em;
+                    width: 100%;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: none;
+                    transition: 0.3s;
+                }
+                div.stButton > button:hover {
+                    background-image: linear-gradient(to right, #f093fb, #f5576c); /* pink-coral gradient */
+                    color: white;
+                    transform: scale(1.05);
+                }
+                </style>
+            """, unsafe_allow_html=True)
+
+
+
             # ----------------------------------------------
-            # LAZY LOADING IMPLEMENTATION
-            # ----------------------------------------------
-            
             # TAB 1: COMPLAINT OVERVIEW
+            # ----------------------------------------------
             with tab1:
-                if st.session_state.get('force_load_tab1', False) or \
-                   st.button("🔄 Load Complaint Overview", key="load_tab1"):
-                    st.session_state.force_load_tab1 = True
-                    with st.spinner("Loading Complaint Overview..."):
-                        streamlit_analysis_tab1(tab1, dataset_path, logger)
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
+                render_tab_loader(
+                    tab_key='tab1',
+                    tab_name='Complaint Overview',
+                    tab_function=lambda dp, lg: streamlit_analysis_tab1(tab1, dp, lg),
+                    dataset_path=dataset_path
+                )
 
+            # ----------------------------------------------
             # TAB 2: DATA TABLE REPORTS
+            # ----------------------------------------------
             with tab2:
-                if st.session_state.get('force_load_tab2', False) or \
-                   st.button("🔄 Load Data Table Reports", key="load_tab2"):
-                    st.session_state.force_load_tab2 = True
-                    with st.spinner("Loading Data Table Reports..."):
-                        streamlit_analysis_tab2(tab2, dataset_path, logger)
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
+                render_tab_loader(
+                    tab_key='tab2',
+                    tab_name='Data Table Reports',
+                    tab_function=lambda dp, lg: streamlit_analysis_tab2(tab2, dp, lg),
+                    dataset_path=dataset_path
+                )
 
+            # ----------------------------------------------
             # TAB 3: FINANCIAL YEAR REPORT
+            # ----------------------------------------------
             with tab3:
-                if st.session_state.get('force_load_tab3', False) or \
-                   st.button("🔄 Load Financial Year Report", key="load_tab3"):
-                    st.session_state.force_load_tab3 = True
-                    with st.spinner("Loading Financial Year Report..."):
-                        streamlit_analysis_tab3(tab3, dataset_path, logger)
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
+                render_tab_loader(
+                    tab_key='tab3',
+                    tab_name='Financial Year Report',
+                    tab_function=lambda dp, lg: streamlit_analysis_tab3(tab3, dp, lg),
+                    dataset_path=dataset_path
+                )
 
+            # ----------------------------------------------
             # TAB 4: PPT / EXECUTIVE REPORTS
+            # ----------------------------------------------
             with tab4:
-                if st.session_state.get('force_load_tab4', False) or \
-                   st.button("🔄 Load PPT / Executive Reports", key="load_tab4"):
-                    st.session_state.force_load_tab4 = True
-                    with st.spinner("Loading PPT / Executive Reports..."):
-                        streamlit_analysis_tab4(tab4, dataset_path, logger)
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
+                render_tab_loader(
+                    tab_key='tab4',
+                    tab_name='PPT / Executive Reports',
+                    tab_function=lambda dp, lg: streamlit_analysis_tab4(tab4, dp, lg),
+                    dataset_path=dataset_path
+                )
 
+            # ----------------------------------------------
             # TAB 5: RAW DATA REPORTS
+            # ----------------------------------------------
             with tab5:
-                if st.session_state.get('force_load_tab5', False) or \
-                   st.button("🔄 Load Raw Data Reports", key="load_tab5"):
-                    st.session_state.force_load_tab5 = True
-                    st.success("🛠️ This project is under development.")
-                    # Add your tab5 logic here when ready
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
+                render_tab_loader(
+                    tab_key='tab5',
+                    tab_name='Raw Data Reports',
+                    tab_function=None,  # Not implemented yet
+                    dataset_path=dataset_path
+                )
 
+            # ----------------------------------------------
             # TAB 6: DATASET INFORMATION
+            # ----------------------------------------------
             with tab6:
-                if st.session_state.get('force_load_tab6', False) or \
-                   st.button("🔄 Load Dataset Information", key="load_tab6"):
-                    st.session_state.force_load_tab6 = True
-                    st.success("🛠️ This project is under development.")
-                    # Add your tab6 logic here when ready
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
+                render_tab_loader(
+                    tab_key='tab6',
+                    tab_name='Dataset Information',
+                    tab_function=None,  # Not implemented yet
+                    dataset_path=dataset_path
+                )
 
+            # ----------------------------------------------
             # TAB 7: VISUAL ANALYTICS
+            # ----------------------------------------------
             with tab7:
-                if st.session_state.get('force_load_tab7', False) or \
-                   st.button("🔄 Load Visual Analytics", key="load_tab7"):
-                    st.session_state.force_load_tab7 = True
-                    st.success("🛠️ This project is under development.")
-                    # Add your tab7 logic here when ready
-                else:
-                    st.info("👆 Click the button above to load this tab's content")
-                    st.caption("💡 Data will only be fetched when you load this tab")
-
+                render_tab_loader(
+                    tab_key='tab7',
+                    tab_name='Visual Analytics',
+                    tab_function=None,  # Not implemented yet
+                    dataset_path=dataset_path
+                )
 
         # ==================================================
-        # OTHER DASHBOARDS
+        # OTHER DASHBOARDS (UNDER DEVELOPMENT)
         # ==================================================
         else:
-            dashboard_type_clean = dashboard_type.encode('ascii', 'ignore').decode('ascii').strip()
-            st.info(f"🚧 {dashboard_type} is under development. Coming soon!")
-            logger.info("Dashboard under development | type=%s", dashboard_type_clean)
-
-            # Placeholder content
-            with st.expander("📋 Planned Features"):
-                st.markdown(f"""
-                ### {dashboard_type}
-
-                This dashboard will include:
-                - Advanced analytics features
-                - Interactive visualizations
-                - Real-time data processing
-                - Machine learning models
-                - Export capabilities
-
-                **Status:** In Development  
-                **Expected Release:** Q1 2025
-                """)
+            render_under_development_placeholder(dashboard_type)
 
         logger.info("Dashboard rendering completed successfully")
 
@@ -200,5 +323,8 @@ def analysis_dashboard(dashboard_type: str, dataset_path: Optional[str] = None,
         error_msg = str(CustomException(e, sys))
         logger.error("Dashboard rendering error | error=%s", error_msg)
         st.error("❌ An unexpected error occurred while rendering the dashboard.")
-        with st.expander("Show error details"):
+        with st.expander("🔍 Show error details"):
             st.code(error_msg)
+            st.caption("Please report this error to the development team.")
+
+

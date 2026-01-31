@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 # CACHED FUNCTIONS - Expensive operations cached for performance
 # ============================================================================
 
-@st.cache_data(ttl=120, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner="App Running... Please wait ⏳")
 def get_cached_dataset_path():
     """Cache dataset path lookup for 30 seconds"""
     try:
@@ -43,7 +43,7 @@ def get_cached_dataset_path():
         logger.info(f"No dataset found: {e}")
         return None, str(e)
 
-@st.cache_data(ttl=30, show_spinner=False)  # Increased TTL to reduce API calls
+@st.cache_data(ttl=600, show_spinner="App Running... Please wait ⏳")
 def check_api_status_cached():
     """Cache API status check for 30 seconds to reduce API calls"""
     try:
@@ -53,7 +53,7 @@ def check_api_status_cached():
         logger.error("API status check error | error=%s", str(e))
         return False, {"message": str(e), "dataset_path": None, "dataset_available": False}
 
-@st.cache_data(ttl=120, show_spinner=False)  # Increased TTL
+@st.cache_data(ttl=600, show_spinner="App Running... Please wait ⏳")
 def check_fastapi_health():
     """Cache FastAPI health check"""
     try:
@@ -68,7 +68,7 @@ def check_fastapi_health():
         logger.error("FastAPI healthcheck error | error=%s", str(e))
         return "error"
 
-@st.cache_data(ttl=120, show_spinner=False)  # Increased TTL
+@st.cache_data(ttl=600, show_spinner="App Running... Please wait ⏳")
 def check_flask_health():
     """Cache Flask API health check"""
     try:
@@ -83,7 +83,7 @@ def check_flask_health():
         logger.error("Flask API healthcheck error | error=%s", str(e))
         return "error"
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=600, show_spinner="App Running... Please wait ⏳")
 def get_files_in_directory(directory):
     """Cache directory file listing"""
     if not os.path.exists(directory):
@@ -378,9 +378,10 @@ try:
             time_since_refresh = datetime.now() - st.session_state.last_refresh_time
             st.caption(f"⏱️ Last refresh: {time_since_refresh.seconds}s ago")
 
-        st.info("Once Reload dataset path and click Refresh System!")
-
         col1, col2 = st.columns(2)
+
+        st.info("👆 Once Reload dataset path and click Refresh System!")
+
         
         with col1:
             if st.button("🔄 Refresh System", type="primary", use_container_width=True):
@@ -419,10 +420,33 @@ try:
                         logger.error("System refresh error | error=%s", str(e), exc_info=True)
         
         with col2:
-            if st.button("🗑️ Clear Cache", use_container_width=True):
-                clear_all_cache()
-                st.success("✅ Cache cleared!")
-                st.rerun()
+            if st.button("🗑️ Delete Dataset", use_container_width=True,type="primary"):
+                try:
+                    if st.session_state.dataset_path and os.path.exists(st.session_state.dataset_path):
+                        # Delete the file
+                        os.remove(st.session_state.dataset_path)
+                        logger.info("Dataset deleted | path=%s", st.session_state.dataset_path)
+                        
+                        # Clear session state
+                        st.session_state.dataset_path = None
+                        st.session_state.last_refresh_time = None
+                        
+                        # Clear cache
+                        clear_all_cache()
+                        
+                        st.success("✅ Dataset deleted successfully!")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ No active dataset to delete.")
+                        logger.warning("Delete attempted but no dataset found")
+                    
+                
+                except Exception as e:
+                    error_msg = f"Error deleting dataset: {str(e)}"
+                    st.error(f"❌ {error_msg}")
+                    add_error_to_history(error_msg)
+                    logger.error("Dataset deletion error | error=%s", str(e), exc_info=True)
+
 
         st.divider()
     
@@ -457,7 +481,7 @@ try:
             with st.expander("Show error details"):
                 st.code(api_data.get("message", "Unknown error"))
     
-        if st.button("🔄 Refresh API Status", use_container_width=True):
+        if st.button("🔄 Refresh API Status", use_container_width=True,type="primary"):
             # Clear only API-related cache
             check_api_status_cached.clear()
             check_fastapi_health.clear()
@@ -566,7 +590,7 @@ try:
                         font-weight: bold;
                         color: white;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);'>
-                🤖 Welcome to the CRM AI Automation Engine!
+                🤖 Welcome to the CRM Automation AI Engine!
             </div>
             """,
             unsafe_allow_html=True)

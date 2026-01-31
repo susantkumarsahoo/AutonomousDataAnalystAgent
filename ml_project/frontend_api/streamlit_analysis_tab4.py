@@ -238,7 +238,17 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             
             with col3:
                 if 'COMPLAINT TYPE' in df.columns:
+                    # Clean text data and apply title case
+                    df['COMPLAINT TYPE'] = (
+                        df['COMPLAINT TYPE']
+                        .str.strip()          # remove leading/trailing spaces
+                        .str.title()          # convert to title case
+                        .str.replace(r'\s+', ' ', regex=True)  # normalize spaces
+                    )
+
+                    # Count unique complaint types
                     unique_types = df['COMPLAINT TYPE'].nunique()
+
                     st.metric(
                         label="Complaint Types",
                         value=f"{unique_types}",
@@ -1275,75 +1285,74 @@ def streamlit_analysis_tab4(tab4, dataset_path, logger=None):
             # ========================================
             # CONTROL PANEL (MOVED TO BOTTOM)
             # ========================================
-            with st.expander("🎛️ Control Panel & Filters", expanded=False):
-                st.markdown("### 🎛️ Control Panel")
+            st.markdown("### 🎛️ Control Panel")
+            
+            # Data refresh button
+            col_refresh1, col_refresh2, col_refresh3 = st.columns([1, 1, 2])
+            with col_refresh1:
+                if st.button("🔄 Refresh Data", use_container_width=True):
+                    st.cache_data.clear()
+                    st.success("Cache cleared! Data will be refreshed.")
+            
+            st.markdown("---")
+            
+            # Create columns for controls
+            control_col1, control_col2 = st.columns(2)
+            
+            with control_col1:
+                st.markdown("### 📊 Visualization Options")
                 
-                # Data refresh button
-                col_refresh1, col_refresh2, col_refresh3 = st.columns([1, 1, 2])
-                with col_refresh1:
-                    if st.button("🔄 Refresh Data", use_container_width=True):
-                        st.cache_data.clear()
-                        st.success("Cache cleared! Data will be refreshed.")
+                # Visualization type selector
+                viz_type = st.selectbox(
+                    "Select Primary Chart Type",
+                    ["Line Chart", "Bar Chart", "Area Chart"],
+                    help="Choose the type of chart for time series data"
+                )
                 
-                st.markdown("---")
+                # Secondary chart type
+                complaint_viz_type = st.selectbox(
+                    "Complaint Type Visualization",
+                    ["Bar Chart", "Pie Chart", "Horizontal Bar"],
+                    help="Choose visualization for complaint types"
+                )
+            
+            with control_col2:
+                st.markdown("### 🔍 Data Filters")
                 
-                # Create columns for controls
-                control_col1, control_col2 = st.columns(2)
+                # Date range filter
+                use_date_filter = st.checkbox("Enable Date Filter", value=False)
                 
-                with control_col1:
-                    st.markdown("### 📊 Visualization Options")
-                    
-                    # Visualization type selector
-                    viz_type = st.selectbox(
-                        "Select Primary Chart Type",
-                        ["Line Chart", "Bar Chart", "Area Chart"],
-                        help="Choose the type of chart for time series data"
-                    )
-                    
-                    # Secondary chart type
-                    complaint_viz_type = st.selectbox(
-                        "Complaint Type Visualization",
-                        ["Bar Chart", "Pie Chart", "Horizontal Bar"],
-                        help="Choose visualization for complaint types"
-                    )
-                
-                with control_col2:
-                    st.markdown("### 🔍 Data Filters")
-                    
-                    # Date range filter
-                    use_date_filter = st.checkbox("Enable Date Filter", value=False)
-                    
-                    if use_date_filter:
-                        date_range = st.date_input(
-                            "Select Date Range",
-                            value=(datetime.now() - timedelta(days=365), datetime.now()),
-                            help="Filter data by date range"
-                        )
-                    
-                    # Show only open complaints
-                    show_only_open = st.checkbox("Show Only Open Complaints", value=False)
-                
-                st.markdown("---")
-                
-                # Display options in columns
-                display_col1, display_col2 = st.columns(2)
-                
-                with display_col1:
-                    st.markdown("### 📋 Display Options")
-                    num_rows = st.slider(
-                        "Number of rows to display",
-                        min_value=10,
-                        max_value=1000,
-                        value=100,
-                        step=10,
-                        help="Select how many rows to show in the dataframe"
+                if use_date_filter:
+                    date_range = st.date_input(
+                        "Select Date Range",
+                        value=(datetime.now() - timedelta(days=365), datetime.now()),
+                        help="Filter data by date range"
                     )
                 
-                with display_col2:
-                    st.markdown("### 🎨 Styling Options")
-                    # Dataframe styling option
-                    use_styling = st.checkbox("Apply Color Gradient", value=True,
-                                             help="Apply color gradient to numeric columns")
+                # Show only open complaints
+                show_only_open = st.checkbox("Show Only Open Complaints", value=False)
+            
+            st.markdown("---")
+            
+            # Display options in columns
+            display_col1, display_col2 = st.columns(2)
+            
+            with display_col1:
+                st.markdown("### 📋 Display Options")
+                num_rows = st.slider(
+                    "Number of rows to display",
+                    min_value=10,
+                    max_value=1000,
+                    value=100,
+                    step=10,
+                    help="Select how many rows to show in the dataframe"
+                )
+            
+            with display_col2:
+                st.markdown("### 🎨 Styling Options")
+                # Dataframe styling option
+                use_styling = st.checkbox("Apply Color Gradient", value=True,
+                                         help="Apply color gradient to numeric columns")
             
             # ========================================
             # FOOTER
