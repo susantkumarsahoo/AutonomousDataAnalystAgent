@@ -20,6 +20,7 @@ from ml_project.frontend_api.streamlit_analysis_tab1 import streamlit_analysis_t
 from ml_project.frontend_api.steramlit_analysis_tab2 import streamlit_analysis_tab2
 from ml_project.frontend_api.streamlit_analysis_tab3 import streamlit_analysis_tab3
 from ml_project.frontend_api.streamlit_analysis_tab4 import streamlit_analysis_tab4
+from ml_project.frontend_api.streamlit_analysis_tab5 import streamlit_analysis_tab5
 
 
 # ============================================================
@@ -192,24 +193,25 @@ def analysis_dashboard(
         
         # Page Title
         st.title(dashboard_type)
-
         # ==================================================
         # ANALYSIS DASHBOARD
         # ==================================================
         if "Analysis Dashboard" in dashboard_type:
             
             # Create tabs
-            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
                 [
-                    "📈 Complaint Overview",
-                    "📋 Data Table Reports",
-                    "💼 Financial Year Report",
-                    "📊 PPT / Executive Reports",
-                    "🗂️ Raw Data Reports",
-                    "🔍 Dataset Information",
+                    "📈 Complaint view",
+                    "📋 Data Table Rpt",
+                    "💼 Finance Year Rpt",
+                    "📊 PPT/Reports",
+                    "🗂️ Raw Data Rpt",
+                    "🗺️ Maps Analysis",  
+                    "🔍 Dataset Info",
                     "📉 Visual Analytics",
                 ]
             )
+
 
             st.markdown("""
                 <style>
@@ -285,32 +287,42 @@ def analysis_dashboard(
                 render_tab_loader(
                     tab_key='tab5',
                     tab_name='Raw Data Reports',
+                    tab_function=lambda dp, lg: streamlit_analysis_tab5(tab5, dp, lg),
+                    dataset_path=dataset_path
+                )
+
+            # ----------------------------------------------
+            # TAB 6: MAPS ANALYSIS
+            # ----------------------------------------------
+            with tab6:
+                render_tab_loader(
+                    tab_key='tab6',
+                    tab_name='Maps Analysis',
                     tab_function=None,  # Not implemented yet
                     dataset_path=dataset_path
                 )
 
             # ----------------------------------------------
-            # TAB 6: DATASET INFORMATION
+            # TAB 7: DATASET INFORMATION
             # ----------------------------------------------
-            with tab6:
+            with tab7:
                 render_tab_loader(
-                    tab_key='tab6',
+                    tab_key='tab7',
                     tab_name='Dataset Information',
                     tab_function=None,  # Not implemented yet
                     dataset_path=dataset_path
                 )
 
             # ----------------------------------------------
-            # TAB 7: VISUAL ANALYTICS
+            # TAB 8: VISUAL ANALYTICS
             # ----------------------------------------------
-            with tab7:
+            with tab8:
                 render_tab_loader(
-                    tab_key='tab7',
+                    tab_key='tab8',
                     tab_name='Visual Analytics',
                     tab_function=None,  # Not implemented yet
                     dataset_path=dataset_path
                 )
-
         # ==================================================
         # OTHER DASHBOARDS (UNDER DEVELOPMENT)
         # ==================================================
