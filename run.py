@@ -7,6 +7,15 @@ import socket
 import requests
 import threading
 
+
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass  # Python version doesn't support reconfigure
+
 # Global process variables
 processes = {}
 shutdown_event = threading.Event()
@@ -104,7 +113,7 @@ def run_servers():
     
     # Check files
     files = {
-        'ml_project/backend_api/fastapi_router.py': 'FastAPI',
+        'fastapi_main.py': 'FastAPI',
         'ml_project/backend_api/flask_router.py': 'Flask',
         'app.py': 'Streamlit'
     }
@@ -132,7 +141,7 @@ def run_servers():
         print("\n🚀 Starting FastAPI...")
         processes['FastAPI'] = subprocess.Popen(
             [sys.executable, '-m', 'uvicorn', 
-             'ml_project.backend_api.fastapi_router:app',
+             'fastapi_main:app',
              '--host', '0.0.0.0', '--port', '8000'],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

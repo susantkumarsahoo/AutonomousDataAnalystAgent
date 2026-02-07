@@ -6,11 +6,17 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 import numpy as np
-from ml_project.frontend_api.streamlit_analysis_app import analysis_dashboard
 from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url, check_api_status
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 from ml_project.configs.config import DatasetNotFoundError, get_dataset_path
+
+
+
+from ml_project.frontend_api.streamlit_analysis_app import analysis_dashboard
+from ml_project.frontend_api.chatbot_app import ai_chatbot_app
+
+
 
 # Constants
 API_URL = "http://localhost:8000"
@@ -638,6 +644,8 @@ try:
     
     # Everything is ready - show the dashboard
     else:
+
+        
         try:
             # Set environment variable for dataset path
             os.environ['DATASET_PATH'] = dataset_path
@@ -651,7 +659,13 @@ try:
             # FIXED: Only show spinner and log on actual dashboard changes
             if 'last_rendered_dashboard' not in st.session_state or st.session_state.last_rendered_dashboard != dashboard_type:
                 with st.spinner(f"Loading {dashboard_type}..."):
-                    analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
+                    # Special handling for AI Chatbot
+                    if dashboard_type == "🤖 AI Chatbot":
+                        ai_chatbot_app()
+                        st.success("✅ AI Chatbot loaded")
+                    else:
+                        analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
+                    
                     st.session_state.last_rendered_dashboard = dashboard_type
                     
                     try:
@@ -661,8 +675,11 @@ try:
                         logger.info("Dashboard rendered successfully")
             else:
                 # Just render without spinner if it's the same dashboard
-                analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
-        
+                if dashboard_type == "🤖 AI Chatbot":
+                    ai_chatbot_app()
+                else:
+                    analysis_dashboard(dashboard_type, dataset_path, uploaded_file)
+
         except Exception as e:
             error_msg = str(CustomException(e, sys))
             add_error_to_history(error_msg)

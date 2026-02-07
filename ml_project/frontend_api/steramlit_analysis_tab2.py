@@ -61,6 +61,7 @@ if sys.platform == "win32":
 logger = get_logger(__name__)
 
 
+
 # Pie Chart , donut chart, mosaic plot, marimekko chart,sunburst chart,sankey diagram,parallel sets,network diagram,polar area chart,Heatmap 
 # multi-line chart, Area Chart by Category, stacked area chart, scatter plot with hue,dot plot by category, Choropleth Map, Dot Density Map
 # Funnel Chart, Mixed Subplots

@@ -41,6 +41,14 @@ API_URL = "http://localhost:8000"
 FASTAPI_URL = "http://localhost:8000"
 FLASK_URL = "http://localhost:5000"
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass  # Python version doesn't support reconfigure
+
+
 
 try:
     dataset_path = get_dataset_path("data/raw_path")
@@ -659,3 +667,6 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Failed to start server | error={str(e)}")
         sys.exit(1)
+
+
+# ml_project/backend_api/fastapi_router.py
