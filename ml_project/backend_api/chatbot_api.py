@@ -7,6 +7,7 @@ import sys
 
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
+from ml_project.backend_api.api_url import fastapi_api_request_url, flask_api_request_url
 
 
 from ml_project.chatbot.langchain_ext.document_loader import get_openai_api_key
@@ -265,17 +266,19 @@ async def reset_conversation(request: ResetRequest):
 async def delete_session(session_id: str):
     """Delete a specific session"""
     try:
-        if session_id in chatbot_sessions:
-            del chatbot_sessions[session_id]
-            return {
-                "status": "success",
-                "message": f"Session {session_id} deleted successfully"
-            }
-        else:
+        if session_id not in chatbot_sessions:
             raise HTTPException(
                 status_code=404,
                 detail=f"Session {session_id} not found"
             )
+        
+        del chatbot_sessions[session_id]
+        return {
+            "status": "success",
+            "message": f"Session {session_id} deleted successfully"
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         error_msg = str(CustomException(e, sys))
         logger.error(f"Unhandled exception | error={error_msg}")
@@ -301,5 +304,3 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Failed to start server | error={str(e)}")
         sys.exit(1)
-
-# ml_project/backend_api/chatbot_api.py

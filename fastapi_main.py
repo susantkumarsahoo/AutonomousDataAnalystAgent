@@ -1,6 +1,5 @@
 """
-Main FastAPI Application - Alternative Approach Using APIRouter
-Better organization with proper routing separation
+Main FastAPI Application - Fixed Version
 """
 
 import os
@@ -12,23 +11,21 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import APIRouter
 
 from ml_project.logger.custom_logger import get_logger
 from ml_project.exceptions.exception import CustomException
 
 logger = get_logger(__name__)
 
-
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding='utf-8')
         sys.stderr.reconfigure(encoding='utf-8')
     except AttributeError:
-        pass  # Python version doesn't support reconfigure
+        pass
 
-# ============================================================================
 # Create Main FastAPI Application
-# ============================================================================
 app = FastAPI(
     title="Twitter Analytics & AI Chatbot Platform",
     description="Unified API for Twitter analytics, data visualization, and AI-powered chatbot",
@@ -38,9 +35,7 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# ============================================================================
 # Custom Middleware
-# ============================================================================
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to log all requests and responses with timing"""
     
@@ -76,24 +71,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             )
             raise
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses"""
-    
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
-        return response
-
-# ============================================================================
 # Add Middleware
-# ============================================================================
 app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -102,23 +81,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============================================================================
-# Import and Include Routers
-# ============================================================================
-
-# Create routers for each module
-from fastapi import APIRouter
-
-# Analytics Router
-analytics_router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
+# Analytics Router - NO PREFIX (FIX FOR 404 ISSUE)
+analytics_router = APIRouter(prefix="", tags=["Analytics"])
 
 # Chatbot Router  
 chatbot_router = APIRouter(prefix="/api/chatbot", tags=["Chatbot"])
 
-# Import routes from the original files and add them to routers
-# We need to extract the route handlers from the original apps
-
-# For Analytics - import all the endpoint functions
+# Import analytics routes
 try:
     from ml_project.backend_api.fastapi_router import (
         read_root as analytics_root,
@@ -134,9 +103,9 @@ try:
         get_generate_finance_year_wise_open_close_pivot_report
     )
     
-    # Add analytics routes
-    analytics_router.add_api_route("/", analytics_root, methods=["GET"])
-    analytics_router.add_api_route("/healthcheck", analytics_health, methods=["GET"])
+    # Add analytics routes WITHOUT prefix
+    analytics_router.add_api_route("/analytics", analytics_root, methods=["GET"])
+    analytics_router.add_api_route("/analytics/healthcheck", analytics_health, methods=["GET"])
     analytics_router.add_api_route("/open_complaint_pivot", get_open_complaint_pivot, methods=["GET"])
     analytics_router.add_api_route("/open_close_complaint_pivot", get_open_close_complaint_pivot, methods=["GET"])
     analytics_router.add_api_route("/agging_open_pivot_dict", get_agging_open_pivot_dict, methods=["GET"])
@@ -152,7 +121,7 @@ try:
 except Exception as e:
     logger.error(f"Error importing analytics routes: {str(CustomException(e, sys))}")
 
-# For Chatbot - import all the endpoint functions
+# Import chatbot routes
 try:
     from ml_project.backend_api.chatbot_api import (
         root as chatbot_root,
@@ -165,7 +134,7 @@ try:
     
     # Add chatbot routes
     chatbot_router.add_api_route("/", chatbot_root, methods=["GET"])
-    chatbot_router.add_api_route("/chatbot_health", chatbot_health, methods=["GET"])
+    chatbot_router.add_api_route("/health", chatbot_health, methods=["GET"])
     chatbot_router.add_api_route("/initialize", initialize_chatbot, methods=["POST"])
     chatbot_router.add_api_route("/chat", chat, methods=["POST"])
     chatbot_router.add_api_route("/reset", reset_conversation, methods=["POST"])
@@ -176,141 +145,92 @@ try:
 except Exception as e:
     logger.error(f"Error importing chatbot routes: {str(CustomException(e, sys))}")
 
-# Include routers in main app
+# Include routers
 app.include_router(analytics_router)
 app.include_router(chatbot_router)
 
-# ============================================================================
 # Root Endpoints
-# ============================================================================
 @app.get("/", tags=["Root"])
 def read_root():
-    """Main root endpoint with complete API information"""
+    """Main root endpoint"""
     try:
         logger.info("Root endpoint accessed")
         return {
+            "status": "success",
             "message": "Twitter Analytics & AI Chatbot Platform",
-            "status": "running",
             "version": "2.0.0",
-            "architecture": "Microservices with APIRouter",
-            "services": {
-                "analytics": {
-                    "base_path": "/api/analytics",
-                    "description": "Twitter complaint analytics and reporting",
-                    "endpoints": [
-                        "GET /api/analytics/",
-                        "GET /api/analytics/healthcheck",
-                        "GET /api/analytics/open_complaint_pivot",
-                        "GET /api/analytics/open_close_complaint_pivot",
-                        "GET /api/analytics/agging_open_pivot_dict",
-                        "GET /api/analytics/agging_open_close_pivot_dict",
-                        "GET /api/analytics/open_close_complaint_report",
-                        "GET /api/analytics/all_agging_complaint_report",
-                        "GET /api/analytics/month_wise_open_close_pivot_report?selected_month=YYYY-MM",
-                        "GET /api/analytics/quarter_wise_open_close_report?start_year=YYYY&start_quarter=Q1&end_year=YYYY&end_quarter=Q4",
-                        "GET /api/analytics/year_wise_open_close_pivot_report?start_year=YYYY&start_date=MM-DD&end_year=YYYY&end_date=MM-DD"
-                    ]
-                },
-                "chatbot": {
-                    "base_path": "/api/chatbot",
-                    "description": "AI-powered conversational chatbot",
-                    "endpoints": [
-                        "GET /api/chatbot/",
-                        "GET /api/chatbot/chatbot_health",
-                        "POST /api/chatbot/initialize",
-                        "POST /api/chatbot/chat",
-                        "POST /api/chatbot/reset",
-                        "DELETE /api/chatbot/session/{session_id}"
-                    ]
-                }
-            },
-            "documentation": {
-                "swagger_ui": "http://localhost:8000/docs",
-                "openapi_json": "http://localhost:8000/openapi.json"
-            },
-            "example_usage": {
-                "analytics": "curl http://localhost:8000/api/analytics/healthcheck",
-                "chatbot": "curl http://localhost:8000/api/chatbot/chatbot_health"
+            "endpoints": {
+                "healthcheck": "GET /healthcheck",
+                "analytics": "GET /open_complaint_pivot",
+                "chatbot": "POST /api/chatbot/chat",
+                "docs": "GET /docs"
             }
         }
     except Exception as e:
-        logger.error(f"Root endpoint error | error={str(CustomException(e, sys))}")
+        logger.error(f"Root endpoint error: {str(e)}")
         return JSONResponse(
             status_code=500,
-            content={"error": "Internal server error"}
+            content={"status": "error", "error": str(e)}
         )
 
 @app.get("/healthcheck", tags=["Health"])
 def global_health_check():
-    """Global health check for entire platform"""
+    """Global health check - FIXED VERSION"""
     try:
         logger.info("Global health check accessed")
         
+        # Re-check for dataset on each healthcheck
+        current_dataset_path = None
+        dataset_exists = False
+        
+        try:
+            from ml_project.configs.config import get_dataset_path, DatasetNotFoundError
+            current_dataset_path = get_dataset_path("data/raw_path")
+            dataset_exists = os.path.exists(current_dataset_path) if current_dataset_path else False
+        except:
+            current_dataset_path = None
+            dataset_exists = False
+        
         return {
+            "status": "healthy",  # This was missing in analytics endpoint
+            "message": "FastAPI is healthy",
             "platform_status": "healthy",
             "timestamp": datetime.datetime.now().isoformat(),
-            "services": {
-                "analytics": {
-                    "status": "available",
-                    "path": "/api/analytics"
-                },
-                "chatbot": {
-                    "status": "available",
-                    "path": "/api/chatbot"
-                }
-            },
             "version": "2.0.0",
-            "uptime": "system_active"
+            "dataset_available": dataset_exists,
+            "dataset_path": current_dataset_path if current_dataset_path else "Not available"
         }
         
     except Exception as e:
-        logger.error(f"Health check error | error={str(CustomException(e, sys))}")
+        logger.error(f"Health check error: {str(e)}")
         return JSONResponse(
             status_code=500,
-            content={"error": "Internal server error"}
+            content={
+                "status": "error",
+                "message": str(e)
+            }
         )
 
-# ============================================================================
-# Startup & Shutdown Events
-# ============================================================================
+# Startup Event
 @app.on_event("startup")
 async def startup_event():
     """Initialize application on startup"""
     try:
         logger.info("=" * 80)
-        logger.info("UNIFIED FASTAPI APPLICATION STARTING")
+        logger.info("FASTAPI APPLICATION STARTING")
         logger.info("=" * 80)
-        logger.info("Application: %s", app.title)
-        logger.info("Version: %s", app.version)
         logger.info("Server: http://localhost:8000")
-        logger.info("=" * 80)
-
-    except Exception as e:
-        logger.exception(
-            "Startup initialization failed",
-            exc_info=CustomException(e, sys)
-        )
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on application shutdown"""
-    try:
-        logger.info("=" * 80)
-        logger.info("UNIFIED FASTAPI APPLICATION SHUTTING DOWN")
+        logger.info("Docs: http://localhost:8000/docs")
         logger.info("=" * 80)
     except Exception as e:
-        logger.error(f"Shutdown error | error={str(e)}")
+        logger.error(f"Startup failed: {str(e)}")
 
-# ============================================================================
-# Development Server
-# ============================================================================
 if __name__ == "__main__":
-    logger.info("Starting Unified FastAPI Server with APIRouter Architecture")
+    logger.info("Starting FastAPI Server")
     
     try:
         uvicorn.run(
-            "main:app",  # Point to this file
+            "fastapi_main:app",
             host="0.0.0.0",
             port=8000,
             log_level="info",
@@ -319,5 +239,5 @@ if __name__ == "__main__":
             workers=1
         )
     except Exception as e:
-        logger.error(f"Failed to start server | error={str(e)}")
+        logger.error(f"Failed to start server: {str(e)}")
         sys.exit(1)

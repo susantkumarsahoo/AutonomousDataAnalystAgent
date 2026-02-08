@@ -105,3 +105,4 @@ def check_api_status():
     except Exception as e:
         logger.exception("Unexpected error while checking API status")
         return False, {"message": str(e)}
+    
